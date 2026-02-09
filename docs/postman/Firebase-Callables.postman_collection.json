@@ -1,0 +1,100 @@
+{
+  "info": {
+    "name": "Firebase Callables (RentAScooter)",
+    "description": "Test Firebase Callable Functions. Set collection variables: baseUrl, idToken (for auth).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://europe-west1-auth-bf4f5.cloudfunctions.net" },
+    { "key": "idToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "searchLocations",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"data\": {\n    \"query\": \"Dakar\",\n    \"limit\": 5\n  }\n}"
+        },
+        "url": "{{baseUrl}}/searchLocations",
+        "description": "Search locations (Mapbox). No auth."
+      }
+    },
+    {
+      "name": "suggestLocation",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"data\": {\n    \"query\": \"Dak\",\n    \"limit\": 5\n  }\n}"
+        },
+        "url": "{{baseUrl}}/suggestLocation",
+        "description": "Suggest locations. No auth."
+      }
+    },
+    {
+      "name": "retrieveLocation",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"data\": {\n    \"mapboxId\": \"dXJuOi8...\",\n    \"sessionToken\": \"your-session-token\"\n  }\n}"
+        },
+        "url": "{{baseUrl}}/retrieveLocation",
+        "description": "Retrieve full location by mapboxId + sessionToken. No auth."
+      }
+    },
+    {
+      "name": "getLocationHistory",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{idToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"data\": {\n    \"limit\": 10\n  }\n}"
+        },
+        "url": "{{baseUrl}}/getLocationHistory",
+        "description": "Get user location history. Auth required."
+      }
+    },
+    {
+      "name": "saveLocationToHistory",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{idToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"data\": {\n    \"address\": \"Dakar, Senegal\",\n    \"latitude\": 14.7167,\n    \"longitude\": -17.4677\n  }\n}"
+        },
+        "url": "{{baseUrl}}/saveLocationToHistory",
+        "description": "Save a location to user history. Auth required."
+      }
+    },
+    {
+      "name": "getRideHistory",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{idToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"data\": {\n    \"limit\": 20\n  }\n}"
+        },
+        "url": "{{baseUrl}}/getRideHistory",
+        "description": "Get ride history for current user. Auth required."
+      }
+    }
+  ]
+}

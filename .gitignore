@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Yarn Berry
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Expo
+.expo/
+.expo-shared/
+web-build/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Debug / logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# Secrets & credentials
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.env
+.env.local
+.env.*.local
+
+# iOS
+ios/Pods/
+ios/Pods*/
+ios/build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+
+# Android (root-level supplements; android/ has its own)
+*.apk
+*.aab
+*.ipa
+
+# Metro
+.metro-health-check*
+
+# Misc
+*.orig.*
+.DS_Store
+Thumbs.db
+coverage/
+.sentryclirc

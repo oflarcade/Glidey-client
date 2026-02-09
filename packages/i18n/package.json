@@ -1,0 +1,23 @@
+{
+  "name": "@rentascooter/i18n",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./locales/en": "./src/locales/en.json",
+    "./locales/fr": "./src/locales/fr.json"
+  },
+  "dependencies": {
+    "i18n-js": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": ">=1.21.0",
+    "expo-localization": ">=15.0.0",
+    "react": ">=18.0.0 || >=19.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

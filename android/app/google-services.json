@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "258292595627",
+    "firebase_url": "https://auth-bf4f5.firebaseio.com",
+    "project_id": "auth-bf4f5",
+    "storage_bucket": "auth-bf4f5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258292595627:android:0514da61bf4f944fda30ee",
+        "android_client_info": {
+          "package_name": "com.glidey.client"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "258292595627-pvsqp8h5d3d5qlc08q9uonh07q678dk5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJzev8wEpS6tLfIv8AU9Aj0Xu8Mg904qg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "258292595627-pvsqp8h5d3d5qlc08q9uonh07q678dk5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
