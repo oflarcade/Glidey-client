@@ -1,4 +1,5 @@
 import { normalizeError, type ApiError } from './errors';
+import { resolveToken } from './auth';
 
 export const API_BASE_URL: string =
   process.env['EXPO_PUBLIC_API_URL'] ?? 'http://34.140.138.4';
@@ -54,6 +55,23 @@ export async function apiFetch(
   if (response.status === 204) return undefined;
 
   return response.json() as Promise<unknown>;
+}
+
+/**
+ * Authenticated fetch — resolves Firebase ID token and injects Bearer header.
+ * Use this for all endpoints that require a signed-in user.
+ * Throws UNAUTHORIZED ApiError (without making a request) when no user is signed in.
+ */
+export async function authedFetch(
+  method: HttpMethod,
+  path: string,
+  body?: unknown,
+): Promise<unknown> {
+  const token = await resolveToken();
+  return apiFetch(method, path, {
+    body,
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 export type { ApiError };
