@@ -38,3 +38,20 @@ export {
   createRide,
   cancelRide,
 } from './bookingService';
+
+export {
+  subscribeToMatching,
+  getMatchingStatus,
+  type MatchingEvent,
+  type MatchingCleanup,
+} from './matchingService';
+
+export {
+  reverseGeocode,
+  confirmPickup,
+} from './pickupService';
+
+export {
+  subscribeToTracking,
+  type TrackingCleanup,
+} from './trackingService';

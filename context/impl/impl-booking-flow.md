@@ -17,13 +17,13 @@ Build site: context/plans/build-site-booking-flow.md
 | T-090 | DONE | bookingService — estimateFare (GET), createRide (POST), cancelRide (POST) via authedFetch + ApiError |
 | T-091 | DONE | booking demo mode — DEMO_FARE (1250 XOF), demoRide() with timestamp id, DEMO_CANCEL; co-located in bookingService.ts |
 | T-092 | DONE | RideMatchingPayload + TrackingPositionUpdate in shared/types; all coords use GeoPoint; no parallel lat/lng |
-| T-093 | TODO | Implement useBooking hook + thin BookingScreen scaffold |
-| T-094 | TODO | Implement matchingService — realtime subscription lifecycle, 5s polling fallback |
-| T-095 | TODO | Implement pickupService — reverse geocoding + confirmPickup transmit |
-| T-096 | TODO | Implement trackingService — realtime position subscription, polling fallback, expo-keep-awake |
-| T-097 | TODO | Implement matchingService demo mode |
-| T-098 | TODO | Implement pickupService demo path |
-| T-099 | TODO | Implement trackingService demo path |
+| T-093 | DONE | useBooking hook — fare-estimate auto-fetch, bookRide/cancel actions, isBusy guard, FSM transition; thin booking.tsx scaffold |
+| T-094 | DONE | matchingService — WS on /rides/{id}/events, 5s poll fallback on error/close, teardown on terminal states |
+| T-095 | DONE | pickupService — Mapbox reverse geocoding, POST /rides/{id}/confirm-pickup |
+| T-096 | DONE | trackingService — WS on /rides/{id}/tracking, 5s poll fallback, activateKeepAwake/deactivateKeepAwake |
+| T-097 | DONE | matchingService demo mode — co-located; 3×3s delays → matched with DEMO_DRIVER fixture |
+| T-098 | DONE | pickupService demo path — co-located; isApiError(DEMO_MODE_ERROR) → { state: 'pickup_en_route' } |
+| T-099 | DONE | trackingService demo path — co-located; 5s interval, ETA decrement from 300s, randomized Dakar coords |
 | T-100 | TODO | Wire booking UI — fare display, Book Now enable/disable, error state |
 | T-101 | TODO | Wire cancel-during-search affordance |
 | T-102 | TODO | Build MatchingModal — 3-attempt timeout loop, RetryTimeline wiring |

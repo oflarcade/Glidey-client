@@ -36,3 +36,6 @@ export type {
   UseRideHistoryParams,
   UseRideHistoryResult,
 } from './useRideHistory';
+
+export { useBooking } from './useBooking';
+export type { UseBookingParams, UseBookingResult } from './useBooking';
