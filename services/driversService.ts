@@ -1,97 +1,100 @@
 /**
  * Drivers Service
  *
- * Firebase callable function wrappers for driver-related operations.
- * Used by the client app to fetch nearby available drivers for map display.
+ * REST client for nearby driver fetching.
+ * Implements cavekit-nearby-drivers.md R1.
  */
 
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseFunctions } from '@rentascooter/auth';
-import type {
-  GeoPoint,
-  ApiResponse,
-  NearbyDriver,
-  NearbyDriversResponse,
-  GetNearbyDriversRequest,
-} from '@rentascooter/shared';
+import { authedFetch } from '@rentascooter/api';
+import type { GeoPoint, NearbyDriver } from '@rentascooter/shared';
 
-// Re-export NearbyDriver type for consumers
-export type { NearbyDriver, GetNearbyDriversRequest };
+export type { NearbyDriver };
+
+const DEFAULT_RADIUS_M = 3000;
 
 /**
- * Fetch nearby drivers optimized for map display
- *
- * Uses the optimized getNearbyDriversForMap endpoint which:
- * - Returns minimal driver data (no PII)
- * - Supports rate limiting for frequent polling (~5s intervals)
- * - Limits results to max 20 drivers
- * - Includes pre-calculated distances
- *
- * @param location - User's current location
- * @param radiusKm - Search radius in kilometers (default: 3km, max: 10km)
- * @param limit - Maximum drivers to return (default: 20)
- * @returns Array of nearby available drivers for map markers
- *
- * @example
- * ```ts
- * const { drivers, timestamp } = await getNearbyDriversForMap({
- *   location: { latitude: 14.6937, longitude: -17.4441 },
- *   radiusKm: 3,
- *   limit: 15,
- * });
- * ```
+ * Fetch nearby available drivers around a location.
+ * Throws ApiError on backend/network failure.
+ * Callers are responsible for applying the R4 jitter fallback (T-044/T-045)
+ * when the backend does not yet return per-driver coordinates.
  */
-export async function getNearbyDriversForMap(
-  request: GetNearbyDriversRequest
-): Promise<NearbyDriversResponse> {
-  const functions = getFirebaseFunctions();
-  const callable = httpsCallable<GetNearbyDriversRequest, ApiResponse<NearbyDriversResponse>>(
-    functions,
-    'getNearbyDriversForMap'
+export async function getNearby(params: {
+  lat: number;
+  lng: number;
+  radiusM?: number;
+}): Promise<NearbyDriver[]> {
+  const radius = params.radiusM ?? DEFAULT_RADIUS_M;
+  const qs = `lat=${params.lat}&lng=${params.lng}&radius=${radius}`;
+  const data = await authedFetch('GET', `/drivers/nearby?${qs}`);
+  return data as NearbyDriver[];
+}
+
+// ─── T-044/T-045: Coordinate fallback (TEMP until R3 backend fix) ────────────
+
+function hasRealCoords(driver: NearbyDriver): boolean {
+  return (
+    typeof driver.latitude === 'number' &&
+    typeof driver.longitude === 'number' &&
+    (driver.latitude !== 0 || driver.longitude !== 0) &&
+    Math.abs(driver.latitude) <= 90 &&
+    Math.abs(driver.longitude) <= 180
   );
+}
 
-  const result = await callable(request);
-
-  if (!result.data.success || !result.data.data) {
-    throw new Error(result.data.error?.message ?? 'Failed to fetch nearby drivers');
+function driverBearing(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (((hash << 5) - hash) + id.charCodeAt(i)) | 0;
   }
-
-  return result.data.data;
+  return Math.abs(hash % 360);
 }
 
 /**
- * Convenience function to get just the drivers array
- *
- * @param location - User's current location
- * @param radiusKm - Search radius in kilometers (default: 3km)
- * @returns Array of nearby available drivers
+ * Synthesize lat/lng from search center + distanceM + deterministic bearing.
+ * Returns driver unchanged if it already has valid coordinates.
+ * TEMP: remove once backend provides per-driver positions (cavekit R3 gap).
  */
-export async function getAvailableDrivers(
-  request: Pick<GetNearbyDriversRequest, 'location' | 'radiusKm'>
-): Promise<NearbyDriver[]> {
-  const response = await getNearbyDriversForMap(request);
-  return response.drivers;
+export function applyCoordFallback(
+  driver: NearbyDriver,
+  center: { latitude: number; longitude: number }
+): NearbyDriver {
+  if (hasRealCoords(driver)) return driver;
+  const distanceM = driver.distanceM ?? 500;
+  const b = (driverBearing(driver.id) * Math.PI) / 180;
+  const R = 6_371_000;
+  const lat1 = (center.latitude * Math.PI) / 180;
+  const lng1 = (center.longitude * Math.PI) / 180;
+  const d = distanceM / R;
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(b)
+  );
+  const lng2 =
+    lng1 +
+    Math.atan2(
+      Math.sin(b) * Math.sin(d) * Math.cos(lat1),
+      Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
+    );
+  return {
+    ...driver,
+    latitude: (lat2 * 180) / Math.PI,
+    longitude: (lng2 * 180) / Math.PI,
+  };
 }
 
+// ─── Distance helper ─────────────────────────────────────────────────────────
+
 /**
- * Calculate distance between two GeoPoints using Haversine formula
- * Used for client-side distance threshold checks
- *
- * @param point1 - First location
- * @param point2 - Second location
- * @returns Distance in meters
+ * Calculate distance between two GeoPoints using Haversine formula.
+ * Used for client-side distance threshold checks.
  */
 export function calculateDistance(point1: GeoPoint, point2: GeoPoint): number {
-  const R = 6371e3; // Earth's radius in meters
+  const R = 6_371_000; // metres
   const φ1 = (point1.latitude * Math.PI) / 180;
   const φ2 = (point2.latitude * Math.PI) / 180;
   const Δφ = ((point2.latitude - point1.latitude) * Math.PI) / 180;
   const Δλ = ((point2.longitude - point1.longitude) * Math.PI) / 180;
-
   const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c;
+    Math.sin(Δφ / 2) ** 2 +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }

@@ -161,7 +161,7 @@ export const LocationSearchList = memo(function LocationSearchList(
       </View>
       {suggestions.map((suggestion, index) => (
         <SuggestionRow
-          key={suggestion.mapboxId}
+          key={suggestion.placeId}
           suggestion={suggestion}
           onPress={onSelect}
           testID={`${testID}-row-${index}`}

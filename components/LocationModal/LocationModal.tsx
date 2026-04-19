@@ -24,7 +24,6 @@ import * as Haptics from 'expo-haptics';
 import { Button, Icon } from '@rentascooter/ui';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
 import type { Location, Suggestion } from '@rentascooter/shared';
-import { DAKAR_CENTER } from '@rentascooter/shared';
 import { BottomSheet, type BottomSheetRef } from './BottomSheet';
 import { SearchInput, type SearchInputRef } from './SearchInput';
 import { LocationHistoryList } from './LocationHistoryList';
@@ -32,9 +31,7 @@ import { LocationSearchList } from './LocationSearchList';
 import { LocationRow } from './LocationRow';
 import { ScooterCarousel } from '@/components/ScooterCarousel';
 import { useAutocompleteLocation, useLocationHistory } from '@/hooks';
-import { saveLocationToHistory, retrieveLocation } from '@/services';
-import { generateSessionToken } from '@/utils/sessionToken';
-import { mapLocationSearchError } from '@/utils/locationSearchErrors';
+import { saveHistory, placeDetail } from '@/services/addressSearchService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -90,7 +87,6 @@ export const LocationModal = memo(function LocationModal({
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [selectedScooterId, setSelectedScooterId] = useState<string | null>('e-scooter');
   const [isSearching, setIsSearching] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -106,33 +102,18 @@ export const LocationModal = memo(function LocationModal({
     }
   }, [selectedDestination]);
 
-  // Proximity fixed to Dakar so backend/Mapbox returns Senegal results (e.g. when user is in NL)
-  const proximity = {
-    latitude: DAKAR_CENTER.latitude,
-    longitude: DAKAR_CENTER.longitude,
-  };
-
   const {
     suggestions,
     isLoading: isSearchLoading,
     error: searchError,
-  } = useAutocompleteLocation({
-    query: searchQuery,
-    sessionToken,
-    proximity,
-    limit: 5,
-    minQueryLength: 3,
-  });
+  } = useAutocompleteLocation({ query: searchQuery });
 
   const {
     locations: previousLocations,
     isLoading: isHistoryLoading,
     error: historyError,
     refetch: refetchHistory,
-  } = useLocationHistory({
-    enabled: isOpen,
-    limit: 10,
-  });
+  } = useLocationHistory({ enabled: isOpen });
 
   // Layout-driven heights
   const headerHeight = insets.top + 56; // 56px content height defined in MapTopBar
@@ -162,12 +143,11 @@ export const LocationModal = memo(function LocationModal({
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setTripSheetIndex(1);
       setSearchQuery('');
-      setSessionToken(null);
       setRetrieveError(null);
       setIsExpanded(false);
       Keyboard.dismiss();
       try {
-        await saveLocationToHistory(location);
+        await saveHistory(location);
         refetchHistory();
       } catch {
         // Non-blocking: selection still succeeds
@@ -182,24 +162,19 @@ export const LocationModal = memo(function LocationModal({
   // Handle suggestion tap: retrieve full location then select as destination
   const handleSelectSuggestion = useCallback(
     async (suggestion: Suggestion) => {
-      if (!sessionToken) return;
       setRetrieveError(null);
       try {
-        const location = await retrieveLocation({
-          mapboxId: suggestion.mapboxId,
-          sessionToken,
-        });
-        await handleSelectDestination(location);
+        const resolved = await placeDetail(suggestion.placeId);
+        await handleSelectDestination(resolved);
       } catch (err) {
-        setRetrieveError(mapLocationSearchError(err));
+        setRetrieveError((err as { message?: string })?.message ?? 'Failed to resolve location');
       }
     },
-    [sessionToken, handleSelectDestination]
+    [handleSelectDestination]
   );
 
   // Start session when user focuses search (new token per focus session)
   const handleSearchFocus = useCallback(() => {
-    setSessionToken(generateSessionToken());
     setRetrieveError(null);
   }, []);
 
@@ -208,7 +183,6 @@ export const LocationModal = memo(function LocationModal({
     setSearchQuery(text);
     setIsSearching(text.length > 0);
     if (text.length === 0) {
-      setSessionToken(null);
       setRetrieveError(null);
     }
   }, []);
@@ -252,7 +226,6 @@ export const LocationModal = memo(function LocationModal({
       if (index === -1) {
         onClose();
         setIsExpanded(false);
-        setSessionToken(null);
       } else if (index === 0) {
         // Minimized
         setIsExpanded(false);

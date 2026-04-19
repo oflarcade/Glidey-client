@@ -14,7 +14,7 @@
 import { useRef, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { GeoPoint, UserLocation, NearbyDriver } from '@rentascooter/shared';
-import { getAvailableDrivers, calculateDistance } from '../services/driversService';
+import { getNearby, applyCoordFallback, calculateDistance } from '../services/driversService';
 
 // Re-export for consumers
 export type { NearbyDriver };
@@ -153,15 +153,17 @@ export function useNearbyDrivers(
       return [];
     }
 
-    const drivers = await getAvailableDrivers({
-      location: currentGeoPoint,
-      radiusKm,
+    const raw = await getNearby({
+      lat: currentGeoPoint.latitude,
+      lng: currentGeoPoint.longitude,
+      radiusM: radiusKm * 1000,
     });
 
     // Update last fetched location on success
     lastFetchedLocation.current = currentGeoPoint;
 
-    return drivers;
+    // T-044/T-045: apply jitter fallback for drivers missing real coordinates
+    return raw.map((d) => applyCoordFallback(d, currentGeoPoint));
   }, [currentGeoPoint, radiusKm]);
 
   /**

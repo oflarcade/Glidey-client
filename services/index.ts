@@ -5,26 +5,26 @@
  */
 
 export {
-  getAvailableDrivers,
+  getNearby,
+  applyCoordFallback,
   calculateDistance,
-  type GetAvailableDriversRequest,
   type NearbyDriver,
 } from './driversService';
 
 export {
-  getRouteDirections,
-  type GetRouteDirectionsRequest,
+  getRoute,
   type RouteDirectionsResponse,
-  type RouteGeometry,
+  type RouteOriginDestination,
 } from './routeDirectionsService';
 
 export {
-  searchLocations,
-  suggestLocation,
-  retrieveLocation,
-  getLocationHistory,
-  saveLocationToHistory,
-  isValidLocationForHistory,
+  autocomplete,
+  placeDetail,
+  getHistory,
+  saveHistory,
+  isDemoModeError,
+  type ResolvedLocation,
+  type LocationHistoryEntry,
 } from './addressSearchService';
 
 export {
