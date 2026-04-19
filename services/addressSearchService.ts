@@ -1,274 +1,126 @@
 /**
  * Address Search Service
  *
- * Firebase callable wrappers for location search and history.
- * Backend uses Mapbox Geocoding (country=SN, French); tokens stay server-side.
+ * REST client for location search and history.
+ * Backend uses Google Places API; no session tokens on the client side.
+ * Implements cavekit-location-search.md R1–R4.
  */
 
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseFunctions } from '@rentascooter/auth';
-import type {
-  ApiResponse,
-  Location,
-  RetrieveLocationRequest,
-  RetrieveLocationResponse,
-  SearchLocationsRequest,
-  SearchLocationsResponse,
-  Suggestion,
-  SuggestLocationRequest,
-  SuggestLocationResponse,
-} from '@rentascooter/shared';
-import { mapLocationSearchError } from '@/utils/locationSearchErrors';
+import { authedFetch, isApiError, DEMO_MODE_ERROR } from '@rentascooter/api';
+import type { Suggestion } from '@rentascooter/shared';
 
-const SEARCH_QUERY_MIN_LENGTH = 3;
-const SEARCH_LIMIT_MIN = 1;
-const SEARCH_LIMIT_MAX = 10;
-const SEARCH_LIMIT_DEFAULT = 5;
-const HISTORY_LIMIT_MIN = 1;
-const HISTORY_LIMIT_MAX = 20;
-const HISTORY_LIMIT_DEFAULT = 10;
+// ─── Demo fixtures (T-030/T-031) ─────────────────────────────────────────────
 
-function clampLimit(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
+const DEMO_SUGGESTIONS: Suggestion[] = [
+  { placeId: 'demo-1', name: 'Marché Sandaga', formattedAddress: 'Marché Sandaga, Médina, Dakar' },
+  { placeId: 'demo-2', name: "Place de l'Indépendance", formattedAddress: "Place de l'Indépendance, Plateau, Dakar" },
+  { placeId: 'demo-3', name: 'Université Cheikh Anta Diop', formattedAddress: 'UCAD, Fann, Dakar' },
+  { placeId: 'demo-4', name: 'Corniche Ouest', formattedAddress: 'Corniche Ouest, Fann, Dakar' },
+  { placeId: 'demo-5', name: 'Aéroport AIBD', formattedAddress: 'Aéroport Blaise Diagne, Diass' },
+];
+
+const DEMO_PLACES: Record<string, ResolvedLocation> = {
+  'demo-1': { latitude: 14.6928, longitude: -17.4467, name: 'Marché Sandaga', address: 'Marché Sandaga, Médina, Dakar' },
+  'demo-2': { latitude: 14.7167, longitude: -17.4677, name: "Place de l'Indépendance", address: "Place de l'Indépendance, Plateau, Dakar" },
+  'demo-3': { latitude: 14.7461, longitude: -17.4894, name: 'UCAD', address: 'Université Cheikh Anta Diop, Fann, Dakar' },
+  'demo-4': { latitude: 14.7392, longitude: -17.4922, name: 'Corniche Ouest', address: 'Corniche Ouest, Fann, Dakar' },
+  'demo-5': { latitude: 14.7644, longitude: -17.3701, name: 'Aéroport AIBD', address: 'Aéroport Blaise Diagne, Diass' },
+};
+
+const DEMO_HISTORY: LocationHistoryEntry[] = [
+  { address: '123 Avenue Bourguiba, Dakar', name: 'Home', latitude: 14.6937, longitude: -17.4441, frequency: 12, lastUsedAt: '2026-04-18T08:00:00Z' },
+  { address: "Place de l'Indépendance, Plateau, Dakar", name: 'Downtown Office', latitude: 14.7167, longitude: -17.4677, frequency: 8, lastUsedAt: '2026-04-17T17:30:00Z' },
+  { address: 'Marché Sandaga, Médina, Dakar', name: 'Sandaga Market', latitude: 14.6928, longitude: -17.4467, frequency: 3, lastUsedAt: '2026-04-15T11:00:00Z' },
+];
+
+// ─── Response types (shapes the Fastify backend returns) ─────────────────────
+
+export interface ResolvedLocation {
+  latitude: number;
+  longitude: number;
+  name: string;
+  address: string;
 }
+
+export interface LocationHistoryEntry {
+  address: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  frequency: number;
+  lastUsedAt: string; // ISO 8601
+}
+
+// ─── T-021: Autocomplete ──────────────────────────────────────────────────────
 
 /**
- * Normalize search request: enforce BE rules (query min 3 chars, limit 1–10).
+ * Return autocomplete suggestions for a query string.
+ * Returns empty list (no backend call) when query length < 2.
+ * Throws ApiError on backend/network failure.
  */
-function normalizeSearchRequest(
-  request: SearchLocationsRequest
-): SearchLocationsRequest {
-  const query = (request.query ?? '').trim();
-  const limit = request.limit ?? SEARCH_LIMIT_DEFAULT;
-  return {
-    query,
-    proximity: request.proximity,
-    limit: clampLimit(limit, SEARCH_LIMIT_MIN, SEARCH_LIMIT_MAX),
-  };
-}
-
-/**
- * Search locations via backend callable (Mapbox Geocoding, Senegal, French).
- * Skips request when query has fewer than 3 characters.
- *
- * @param request - query (min 3 chars), optional proximity, optional limit (1–10)
- * @returns List of locations matching the query
- */
-export async function searchLocations(
-  request: SearchLocationsRequest
-): Promise<Location[]> {
-  const normalized = normalizeSearchRequest(request);
-  if (normalized.query.length < SEARCH_QUERY_MIN_LENGTH) {
-    return [];
-  }
-
-  const functions = getFirebaseFunctions();
-  const callable = httpsCallable<
-    SearchLocationsRequest,
-    ApiResponse<SearchLocationsResponse>
-  >(functions, 'searchLocations');
-
-  const result = await callable(normalized);
-
-  if (__DEV__) {
-    // eslint-disable-next-line no-console
-    console.log('[addressSearch] request:', normalized, '| response success:', result.data.success, '| results count:', result.data.data?.results?.length ?? 0);
-  }
-
-  if (!result.data.success || !result.data.data) {
-    throw new Error(
-      result.data.error?.message ?? 'Failed to search locations'
-    );
-  }
-
-  return result.data.data.results ?? [];
-}
-
-const SUGGEST_QUERY_MIN_LENGTH = 2;
-
-function normalizeSuggestRequest(
-  request: SuggestLocationRequest
-): SuggestLocationRequest {
-  const query = (request.query ?? '').trim();
-  const limit = request.limit ?? SEARCH_LIMIT_DEFAULT;
-  return {
-    query,
-    sessionToken: request.sessionToken,
-    proximity: request.proximity,
-    limit: clampLimit(limit, SEARCH_LIMIT_MIN, SEARCH_LIMIT_MAX),
-  };
-}
-
-/**
- * Suggest locations via backend Mapbox Search Box API (autocomplete).
- * Min 2 chars (backend rule); caller typically enforces 3 in the hook.
- * Uses session token for the same session as retrieveLocation.
- *
- * @param request - query, sessionToken, optional proximity, optional limit (1–10)
- * @returns Suggestions (no coordinates until user selects and retrieve is called)
- */
-export async function suggestLocation(
-  request: SuggestLocationRequest
-): Promise<Suggestion[]> {
-  const normalized = normalizeSuggestRequest(request);
-  if (normalized.query.length < SUGGEST_QUERY_MIN_LENGTH || !normalized.sessionToken) {
-    return [];
-  }
-
-  const functions = getFirebaseFunctions();
-  const callable = httpsCallable<
-    SuggestLocationRequest,
-    ApiResponse<SuggestLocationResponse>
-  >(functions, 'suggestLocation');
-
+export async function autocomplete(query: string): Promise<Suggestion[]> {
+  if (query.length < 2) return [];
   try {
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[addressSearch] suggestLocation request:', {
-        query: normalized.query,
-        sessionToken: normalized.sessionToken?.slice(0, 8) + '…',
-        proximity: normalized.proximity,
-        limit: normalized.limit,
-      });
-    }
-    const result = await callable(normalized);
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[addressSearch] suggestLocation response:', {
-        success: result.data.success,
-        suggestionsCount: result.data.data?.suggestions?.length ?? 0,
-        suggestions: result.data.data?.suggestions ?? [],
-        error: result.data.error,
-      });
-    }
-    if (!result.data.success || !result.data.data) {
-      throw new Error(
-        result.data.error?.message ?? 'Failed to get suggestions'
-      );
-    }
-    return result.data.data.suggestions ?? [];
-  } catch (err) {
-    throw new Error(mapLocationSearchError(err));
+    const data = await authedFetch('GET', `/locations/search?q=${encodeURIComponent(query)}`);
+    return data as Suggestion[];
+  } catch (e) {
+    if (isApiError(e) && e.code === DEMO_MODE_ERROR.code) return DEMO_SUGGESTIONS;
+    throw e;
   }
 }
 
+// ─── T-022: Place detail resolution ──────────────────────────────────────────
+
 /**
- * Retrieve full location for a suggestion (coordinates + address) by mapboxId.
- * Must use the same sessionToken as the suggestLocation calls in this session.
- *
- * @param request - mapboxId, sessionToken
- * @returns Location with coordinates and address
+ * Resolve a placeId into full coordinates + address.
+ * Throws ApiError (including UNAUTHORIZED) on failure.
  */
-export async function retrieveLocation(
-  request: RetrieveLocationRequest
-): Promise<Location> {
-  if (!request.mapboxId?.trim() || !request.sessionToken?.trim()) {
-    throw new Error(mapLocationSearchError({ code: 'invalid-argument' }));
-  }
-
-  const functions = getFirebaseFunctions();
-  const callable = httpsCallable<
-    RetrieveLocationRequest,
-    ApiResponse<RetrieveLocationResponse>
-  >(functions, 'retrieveLocation');
-
+export async function placeDetail(placeId: string): Promise<ResolvedLocation> {
   try {
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[addressSearch] retrieveLocation request:', {
-        mapboxId: request.mapboxId,
-        sessionToken: request.sessionToken?.slice(0, 8) + '…',
-      });
+    const data = await authedFetch('GET', `/locations/details?placeId=${encodeURIComponent(placeId)}`);
+    return data as ResolvedLocation;
+  } catch (e) {
+    if (isApiError(e) && e.code === DEMO_MODE_ERROR.code) {
+      return DEMO_PLACES[placeId] ?? DEMO_PLACES['demo-1'];
     }
-    const result = await callable(request);
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[addressSearch] retrieveLocation response:', {
-        success: result.data.success,
-        location: result.data.data?.location,
-        error: result.data.error,
-      });
-    }
-    if (!result.data.success || !result.data.data?.location) {
-      throw new Error(
-        result.data.error?.message ?? 'Failed to retrieve location'
-      );
-    }
-    return result.data.data.location;
-  } catch (err) {
-    throw new Error(mapLocationSearchError(err));
+    throw e;
   }
 }
 
+// ─── T-023: Location history retrieval ───────────────────────────────────────
+
 /**
- * Get user's recent location history (previous destinations).
- *
- * @param limit - Optional limit 1–20, default 10
- * @returns Recent locations from clients/{userId}/locationHistory
+ * Fetch the authenticated user's confirmed destination history.
+ * Returns empty list (not an error) when no history exists.
  */
-export async function getLocationHistory(
-  limit: number = HISTORY_LIMIT_DEFAULT
-): Promise<Location[]> {
-  const safeLimit = clampLimit(limit, HISTORY_LIMIT_MIN, HISTORY_LIMIT_MAX);
-  const functions = getFirebaseFunctions();
-  const callable = httpsCallable<
-    { limit?: number },
-    ApiResponse<{ results: Location[] }>
-  >(functions, 'getLocationHistory');
-
-  const result = await callable({ limit: safeLimit });
-
-  if (!result.data.success || !result.data.data) {
-    throw new Error(
-      result.data.error?.message ?? 'Failed to get location history'
-    );
+export async function getHistory(): Promise<LocationHistoryEntry[]> {
+  try {
+    const data = await authedFetch('GET', '/locations/history');
+    return data as LocationHistoryEntry[];
+  } catch (e) {
+    if (isApiError(e) && e.code === DEMO_MODE_ERROR.code) return DEMO_HISTORY;
+    throw e;
   }
-
-  return result.data.data.results ?? [];
 }
 
+// ─── T-024: Location history persistence ─────────────────────────────────────
+
 /**
- * Lightweight client-side validation before calling saveLocationToHistory.
- * Ensures coordinates are finite numbers and address is non-empty.
+ * Persist a confirmed destination to the user's history.
+ * Failure is surfaced as a typed ApiError but must NOT block the trip flow —
+ * callers should catch and log, then continue.
  */
-export function isValidLocationForHistory(location: Location): boolean {
-  return (
-    typeof location.latitude === 'number' &&
-    Number.isFinite(location.latitude) &&
-    typeof location.longitude === 'number' &&
-    Number.isFinite(location.longitude) &&
-    typeof location.address === 'string' &&
-    location.address.trim().length > 0
-  );
+export async function saveHistory(entry: {
+  address: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+}): Promise<void> {
+  await authedFetch('POST', '/locations/history', entry);
 }
 
-/**
- * Save a selected location to user's history (dedup by address, last 10).
- * Call after user selects a search result.
- * Validates coordinates (finite numbers) and non-empty address before calling the callable.
- *
- * @param location - Selected location to save
- */
-export async function saveLocationToHistory(
-  location: Location
-): Promise<void> {
-  if (!isValidLocationForHistory(location)) {
-    throw new Error(
-      'Invalid location: latitude and longitude must be finite numbers and address must be non-empty'
-    );
-  }
+// ─── Demo mode helpers (consumed by T-030 / T-031) ───────────────────────────
 
-  const functions = getFirebaseFunctions();
-  const callable = httpsCallable<Location, ApiResponse<void>>(
-    functions,
-    'saveLocationToHistory'
-  );
-
-  const result = await callable(location);
-
-  if (!result.data.success) {
-    throw new Error(
-      result.data.error?.message ?? 'Failed to save location to history'
-    );
-  }
+export function isDemoModeError(e: unknown): boolean {
+  return isApiError(e) && e.code === DEMO_MODE_ERROR.code;
 }

@@ -6,8 +6,15 @@
  * Implements cavekit-route-directions.md R1.
  */
 
-import { apiFetch, type ApiError } from '@rentascooter/api';
+import { apiFetch, isApiError, DEMO_MODE_ERROR, type ApiError } from '@rentascooter/api';
 import type { RouteDirectionsResponse } from '@rentascooter/shared';
+
+// Demo route: Dakar Plateau → Fann area (~2.6 km, ~8 min) — T-065
+const DEMO_ROUTE: RouteDirectionsResponse = {
+  distanceM: 2580,
+  durationS: 480,
+  polyline: 'sztxAr`niBwnCnrC',
+};
 
 export type { RouteDirectionsResponse };
 
@@ -31,7 +38,13 @@ export async function getRoute(
     `&originLng=${params.originLng}` +
     `&destLat=${params.destLat}` +
     `&destLng=${params.destLng}`;
-  const data = await apiFetch('GET', `/directions?${qs}`);
+  let data: unknown;
+  try {
+    data = await apiFetch('GET', `/directions?${qs}`);
+  } catch (e) {
+    if (isApiError(e) && e.code === DEMO_MODE_ERROR.code) return DEMO_ROUTE;
+    throw e;
+  }
   const result = data as RouteDirectionsResponse;
   if (!result.polyline) {
     const err: ApiError = { code: 'HTTP_ERROR', message: 'Route response missing polyline.' };

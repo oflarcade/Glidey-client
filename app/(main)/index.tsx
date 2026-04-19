@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState, useRef, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -20,6 +20,8 @@ import { useUIStore } from '@rentascooter/shared';
 import type { Location } from '@rentascooter/shared';
 import Constants from 'expo-constants';
 import { useNearbyDrivers, type NearbyDriver } from '@/hooks/useNearbyDrivers';
+import { useRouteDirections } from '@/hooks/useRouteDirections';
+import { getRouteLineCoordinates } from '@/utils/routeLineCoordinates';
 import { DriverMarkers } from '@/components/DriverMarkers';
 import { LocationModal, DestinationTip } from '@/components/LocationModal';
 import { animateToLocation } from '@/utils/mapAnimations';
@@ -104,6 +106,23 @@ export default function ClientMainScreen() {
 
   // Destination state
   const [selectedDestination, setSelectedDestination] = useState<Location | null>(null);
+
+  // Route directions when a destination is selected
+  const { directions } = useRouteDirections({
+    userLocation: location,
+    destination: selectedDestination,
+  });
+
+  const routeLineCoords = useMemo(
+    () => getRouteLineCoordinates(directions ?? null, location, selectedDestination),
+    [directions, location, selectedDestination]
+  );
+
+  const routeGeoJSON = useMemo(() => ({
+    type: 'Feature' as const,
+    properties: {},
+    geometry: { type: 'LineString' as const, coordinates: routeLineCoords },
+  }), [routeLineCoords]);
 
   /**
    * Handle locate button press - centers map on user location
@@ -292,6 +311,21 @@ export default function ClientMainScreen() {
           onDriverPress={handleDriverPress}
           visible={isLocationReady && driversToShow.length > 0}
         />
+
+        {/* Route line — rendered when destination selected and coords available */}
+        {selectedDestination && routeLineCoords.length > 1 && (
+          <MapboxGL.ShapeSource id="route-line-source" shape={routeGeoJSON}>
+            <MapboxGL.LineLayer
+              id="route-line-layer"
+              style={{
+                lineColor: '#4A90E2',
+                lineWidth: 4,
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            />
+          </MapboxGL.ShapeSource>
+        )}
 
         {/* Destination pin marker */}
         {selectedDestination && (
