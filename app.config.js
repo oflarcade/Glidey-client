@@ -35,6 +35,8 @@ module.exports = {
         NSCameraUsageDescription: 'We need camera access for profile pictures.',
         NSPhotoLibraryUsageDescription:
           'We need photo library access for profile pictures.',
+        // HTTPS MIGRATION: remove NSAppTransportSecurity block once backend has TLS.
+        // Step: delete this block → expo prebuild --clean → iOS will enforce ATS by default.
         NSAppTransportSecurity: {
           NSExceptionDomains: {
             '34.140.138.4': {
@@ -65,6 +67,7 @@ module.exports = {
         {
           android: {
             kotlinVersion: '2.0.21',
+            // HTTPS MIGRATION: remove usesCleartextTraffic once backend has TLS.
             usesCleartextTraffic: true,
           },
         },
