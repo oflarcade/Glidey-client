@@ -28,6 +28,7 @@ config.resolver = {
   sourceExts: [...config.resolver.sourceExts, 'svg'],
   // Resolve local packages
   extraNodeModules: {
+    '@rentascooter/api': path.resolve(__dirname, 'packages/api'),
     '@rentascooter/auth': path.resolve(__dirname, 'packages/auth'),
     '@rentascooter/i18n': path.resolve(__dirname, 'packages/i18n'),
     '@rentascooter/onboarding': path.resolve(__dirname, 'packages/onboarding'),

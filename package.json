@@ -26,6 +26,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^16.1.1",
     "@react-native/normalize-colors": "^0.81.5",
+    "@rentascooter/api": "file:./packages/api",
     "@rentascooter/auth": "file:./packages/auth",
     "@rentascooter/i18n": "file:./packages/i18n",
     "@rentascooter/onboarding": "file:./packages/onboarding",
