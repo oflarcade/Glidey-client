@@ -1,4 +1,5 @@
 import { useCallback, useState, useRef, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -58,6 +59,7 @@ import { useUser } from '@rentascooter/auth';
  */
 
 export default function ClientMainScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile } = useUser();
   const { t } = useTranslation();
@@ -190,12 +192,24 @@ export default function ClientMainScreen() {
   }, []);
 
   /**
-   * Handle Book Now CTA from booking modal
+   * Navigate to BookingScreen with pickup + route data from the current map state.
    */
   const handleBookNow = useCallback(() => {
-    // Future: Start booking flow (payment, confirm ride)
-    console.log('Book Now pressed');
-  }, []);
+    if (!location || !selectedDestination) return;
+    router.push({
+      pathname: '/(main)/booking',
+      params: {
+        pickupLat: String(location.latitude),
+        pickupLng: String(location.longitude),
+        destLat: String(selectedDestination.latitude),
+        destLng: String(selectedDestination.longitude),
+        destAddress: selectedDestination.address ?? '',
+        destName: selectedDestination.name ?? '',
+        distanceM: String(directions?.distanceM ?? 0),
+        durationS: String(directions?.durationS ?? 0),
+      },
+    });
+  }, [location, selectedDestination, directions, router]);
 
   /**
    * Handle location modal close

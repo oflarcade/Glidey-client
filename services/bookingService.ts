@@ -10,7 +10,11 @@ import type {
 
 // ─── Demo fixtures (T-091) ────────────────────────────────────────────────────
 
-const DEMO_FARE: FareEstimateResponse = { fareEstimate: 1250 };
+function demofFare(req: FareEstimateRequest): FareEstimateResponse {
+  // 500 XOF base + 300 XOF/km + 25 XOF/min
+  const amount = Math.round(500 + (req.distanceM / 1_000) * 300 + (req.durationS / 60) * 25);
+  return { fareEstimate: Math.max(500, amount) };
+}
 
 function demoRide(): CreateRideV2Response {
   return { id: `demo-ride-${Date.now()}`, state: 'searching' };
@@ -28,7 +32,7 @@ export async function estimateFare(req: FareEstimateRequest): Promise<FareEstima
     );
     return data as FareEstimateResponse;
   } catch (e) {
-    if (isApiError(e) && e.code === DEMO_MODE_ERROR.code) return DEMO_FARE;
+    if (isApiError(e) && e.code === DEMO_MODE_ERROR.code) return demofFare(req);
     throw e;
   }
 }
