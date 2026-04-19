@@ -13,10 +13,10 @@ Build site: context/plans/build-site-booking-flow.md
 | T-086 | DONE | DriverCard — name/vehicleType/plate/rating/rides, Avatar with deterministic bg-color fallback, StarRating |
 | T-087 | DONE | PickupPinSheet — draggable pin (PanResponder), address label slot with loading/fallback states, onboarding tooltip, Confirm button; GeoPoint shape used throughout; no lat/lng alias |
 | T-088 | DONE | ArrivalBanner + ProgressBar — driverName/ETA display, progress [0,1] clamped, "Arriving now" when etaMinutes≤0, "Your driver" fallback |
-| T-089 | TODO | Implement useRideStore Zustand FSM with transition guard + invalid-transition logging |
-| T-090 | TODO | Implement bookingService — estimateFare, createRide, cancelRide + ApiError plumbing |
-| T-091 | TODO | Implement booking-service demo mode |
-| T-092 | TODO | Define RideMatching + TrackingPosition payload types and GeoPoint reuse guard in @rentascooter/shared |
+| T-089 | DONE | useRideStore — Zustand FSM, VALID_TRANSITIONS guard, console.warn on invalid, reset() always allowed |
+| T-090 | DONE | bookingService — estimateFare (GET), createRide (POST), cancelRide (POST) via authedFetch + ApiError |
+| T-091 | DONE | booking demo mode — DEMO_FARE (1250 XOF), demoRide() with timestamp id, DEMO_CANCEL; co-located in bookingService.ts |
+| T-092 | DONE | RideMatchingPayload + TrackingPositionUpdate in shared/types; all coords use GeoPoint; no parallel lat/lng |
 | T-093 | TODO | Implement useBooking hook + thin BookingScreen scaffold |
 | T-094 | TODO | Implement matchingService — realtime subscription lifecycle, 5s polling fallback |
 | T-095 | TODO | Implement pickupService — reverse geocoding + confirmPickup transmit |

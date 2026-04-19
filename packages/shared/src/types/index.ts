@@ -370,3 +370,18 @@ export interface ConfirmPickupRequest {
 export interface ConfirmPickupResponse {
   state: RideState; // expected: 'pickup_en_route'
 }
+
+// ─── Phase 2: Realtime event payloads (T-092) ─────────────────────────────────
+// All coordinates use GeoPoint — no parallel lat/lng shape.
+
+export interface RideMatchingPayload {
+  rideId: string;
+  driver: MatchedDriver;
+}
+
+export interface TrackingPositionUpdate {
+  rideId: string;
+  driverLocation: GeoPoint;
+  etaSeconds: number;
+  timestamp: number; // Unix ms
+}

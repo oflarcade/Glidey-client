@@ -32,3 +32,9 @@ export {
   type GetRideHistoryRequest,
   type GetRideHistoryResponse,
 } from './ridesService';
+
+export {
+  estimateFare,
+  createRide,
+  cancelRide,
+} from './bookingService';

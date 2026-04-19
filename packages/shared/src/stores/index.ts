@@ -29,3 +29,10 @@ export {
   selectActiveBottomSheet,
   type BottomSheetType,
 } from './uiStore';
+
+export {
+  useRideStore,
+  selectRideState,
+  selectRideId,
+  selectMatchedDriver,
+} from './rideStore';
