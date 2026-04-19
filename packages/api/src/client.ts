@@ -1,10 +1,19 @@
-import { normalizeError, type ApiError } from './errors';
+import { normalizeError, isApiError, type ApiError } from './errors';
 import { resolveToken } from './auth';
+import { refreshToken } from './refresh';
 
 export const API_BASE_URL: string =
   process.env['EXPO_PUBLIC_API_URL'] ?? 'http://34.140.138.4';
 
 const TIMEOUT_MS = 10_000;
+
+const IS_DEMO = process.env['EXPO_PUBLIC_USE_DEMO'] === 'true';
+
+/** Thrown by apiFetch/authedFetch when demo mode is active instead of making a real HTTP request. */
+export const DEMO_MODE_ERROR: ApiError = {
+  code: 'DEMO_MODE',
+  message: 'Demo mode active — no HTTP request dispatched.',
+} as const;
 
 function joinUrl(base: string, path: string): string {
   return base.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
@@ -24,6 +33,7 @@ export async function apiFetch(
     headers?: Record<string, string>;
   } = {},
 ): Promise<unknown> {
+  if (IS_DEMO) throw DEMO_MODE_ERROR;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -59,7 +69,8 @@ export async function apiFetch(
 
 /**
  * Authenticated fetch — resolves Firebase ID token and injects Bearer header.
- * Use this for all endpoints that require a signed-in user.
+ * On a server 401, forces a token refresh and replays the request exactly once.
+ * A second 401 surfaces as UNAUTHORIZED without another retry.
  * Throws UNAUTHORIZED ApiError (without making a request) when no user is signed in.
  */
 export async function authedFetch(
@@ -68,10 +79,22 @@ export async function authedFetch(
   body?: unknown,
 ): Promise<unknown> {
   const token = await resolveToken();
-  return apiFetch(method, path, {
-    body,
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  try {
+    return await apiFetch(method, path, {
+      body,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (e) {
+    // Server 401 (has status field) → force-refresh then replay once
+    if (isApiError(e) && e.code === 'UNAUTHORIZED' && e.status === 401) {
+      const freshToken = await refreshToken();
+      return await apiFetch(method, path, {
+        body,
+        headers: { Authorization: `Bearer ${freshToken}` },
+      });
+    }
+    throw e;
+  }
 }
 
 export type { ApiError };
