@@ -1,67 +1,41 @@
 /**
  * Route Directions Service
  *
- * Firebase callable wrapper for getRouteDirections.
- * Backend calls Mapbox Directions API with full geometry and returns
- * distance, duration, and GeoJSON LineString for drawing the route on the map.
+ * REST client for route directions. This endpoint does NOT require auth —
+ * apiFetch (not authedFetch) is used intentionally.
+ * Implements cavekit-route-directions.md R1.
  */
 
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseFunctions } from '@rentascooter/auth';
-import type { ApiResponse, Location } from '@rentascooter/shared';
+import { apiFetch, type ApiError } from '@rentascooter/api';
+import type { RouteDirectionsResponse } from '@rentascooter/shared';
 
-/** GeoJSON LineString as returned by Mapbox Directions (geometries=geojson). */
-export interface RouteGeometry {
-  type: 'LineString';
-  coordinates: [number, number][];
-}
+export type { RouteDirectionsResponse };
 
-/** Response from getRouteDirections callable. Replaced by REST in T-062. */
-export interface RouteDirectionsResponse {
-  distanceM: number;
-  durationS: number;
-  geometry: RouteGeometry;
-  polyline: string;
-}
-
-/** Request payload for getRouteDirections (same shape as createRide pickup/destination). */
-export interface GetRouteDirectionsRequest {
-  pickup: Location;
-  destination: Location;
+export interface RouteOriginDestination {
+  originLat: number;
+  originLng: number;
+  destLat: number;
+  destLng: number;
 }
 
 /**
- * Fetch route directions (pickup → destination) with full geometry.
- *
- * Backend calls Mapbox Directions v5 with geometries=geojson and overview=full.
- * Use response.geometry.coordinates for the route line on the map; use
- * distanceM and durationS for fare/ETA.
- *
- * @param pickup - Pickup location (e.g. user location)
- * @param destination - Destination location
- * @returns Route with geometry, distance, and duration
- *
- * @example
- * ```ts
- * const route = await getRouteDirections({ pickup, destination });
- * // route.geometry.coordinates → for ShapeSource + LineLayer
- * // route.distanceM, route.durationS → for fare/ETA
- * ```
+ * Fetch a route between origin and destination.
+ * Does not require the user to be signed in.
+ * Throws ApiError on invalid coords, empty polyline, or network failure.
  */
-export async function getRouteDirections(
-  request: GetRouteDirectionsRequest
+export async function getRoute(
+  params: RouteOriginDestination
 ): Promise<RouteDirectionsResponse> {
-  const functions = getFirebaseFunctions();
-  const callable = httpsCallable<
-    GetRouteDirectionsRequest,
-    ApiResponse<RouteDirectionsResponse>
-  >(functions, 'getRouteDirections');
-
-  const result = await callable(request);
-
-  if (!result.data.success || !result.data.data) {
-    throw new Error(result.data.error?.message ?? 'Failed to get route directions');
+  const qs =
+    `originLat=${params.originLat}` +
+    `&originLng=${params.originLng}` +
+    `&destLat=${params.destLat}` +
+    `&destLng=${params.destLng}`;
+  const data = await apiFetch('GET', `/directions?${qs}`);
+  const result = data as RouteDirectionsResponse;
+  if (!result.polyline) {
+    const err: ApiError = { code: 'HTTP_ERROR', message: 'Route response missing polyline.' };
+    throw err;
   }
-
-  return result.data.data;
+  return result;
 }
