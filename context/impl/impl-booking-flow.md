@@ -32,15 +32,15 @@ Build site: context/plans/build-site-booking-flow.md
 | T-105 | DONE | useMatching: subscribeToMatching wrapper, 30s attempt timer, activeAttemptIndex/completedAttempts/inFallback |
 | T-106 | DONE | usePickup: GPS geocode on mount, drag-end geocode, AsyncStorage tooltip persistence |
 | T-107 | DONE | useRideTracking: subscribeToTracking wrapper, driverPosition/currentEta/stale/progress + T-112 ETA-reset |
-| T-108 | TODO | Compose PickupScreen — PickupPinSheet, geocoded label, first-use tooltip, Confirm button |
-| T-109 | TODO | Compose TrackingScreen |
-| T-110 | TODO | Gate pickup map visibility to matched state only |
-| T-111 | TODO | Integrate arrival-banner ETA-update path |
-| T-112 | TODO | Integrate progress-bar reset logic |
-| T-113 | TODO | Integrate keep-awake terminal release |
-| T-114 | TODO | Integrate realtime-connected vs disconnected transport routing |
-| T-115 | TODO | Integrate driver-marker staleness detector |
-| T-116 | TODO | Integrate ride-creation concurrent-tap guard |
-| T-117 | TODO | Integrate cancellation post-match suppression |
-| T-118 | TODO | Integrate ApiError surface for pickup confirm failure |
-| T-119 | TODO | Integrate polling-failure continuation |
+| T-108 | DONE | PickupScreen: PickupPinSheet + usePickup, geocoded label, tooltip, Confirm → confirmPickup → pickup_en_route |
+| T-109 | DONE | TrackingScreen: FullScreenMap + driver MarkerView + ArrivalBanner + stale banner |
+| T-110 | DONE | PickupScreen useEffect guard: router.back() when rideState !== 'matched' |
+| T-111 | DONE | ArrivalBanner re-renders on each useRideTracking update via useState binding |
+| T-112 | DONE | >20% ETA-increase resets originalEtaRef in useRideTracking |
+| T-113 | DONE | trackingService.deactivateKeepAwake in cleanup → released on TrackingScreen unmount |
+| T-114 | DONE | WS primary; stopPolling on onopen; startPolling on onerror/onclose — both services |
+| T-115 | DONE | useRideTracking stale flag; driver dot opacity 0.35 + banner in TrackingScreen |
+| T-116 | DONE | busyRef + isBusy in useBooking.bookRide early-return guard |
+| T-117 | DONE | BookingScreen cancel only rendered when isSearching; hidden post-match |
+| T-118 | DONE | PickupScreen catch → setConfirmError → PickupPinSheet.confirmError → stays on screen |
+| T-119 | DONE | polling setInterval catch swallows single failure; next tick fires normally |
