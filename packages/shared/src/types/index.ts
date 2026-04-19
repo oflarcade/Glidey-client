@@ -113,11 +113,14 @@ export interface RideFare {
   currency: 'XOF'; // West African CFA franc
 }
 
-export interface RouteInfo {
-  distanceMeters: number;
-  durationSeconds: number;
-  polyline: string; // Encoded polyline from Mapbox
+export interface RouteDirectionsResponse {
+  distanceM: number;
+  durationS: number;
+  polyline: string;
 }
+
+// Backwards-compat alias — T-061 migrates all consumers to RouteDirectionsResponse
+export type RouteInfo = RouteDirectionsResponse;
 
 export interface RideTimestamps {
   requestedAt: Date;
@@ -152,23 +155,15 @@ export interface SearchLocationsResponse {
   results: Location[];
 }
 
-// Mapbox Search Box API (autocomplete) types
+// Google Places autocomplete types (replaces Mapbox Search Box)
 export interface Suggestion {
-  mapboxId: string;
+  placeId: string;
   name: string;
-  fullAddress: string;
-  address?: string;
-  placeFormatted?: string;
-  featureType?: string;
-  context?: string;
-  maki?: string;
-  poiCategory?: string;
-  distance?: number;
+  formattedAddress: string;
 }
 
 export interface SuggestLocationRequest {
   query: string;
-  sessionToken: string;
   proximity?: GeoPoint;
   limit?: number;
 }
@@ -178,8 +173,7 @@ export interface SuggestLocationResponse {
 }
 
 export interface RetrieveLocationRequest {
-  mapboxId: string;
-  sessionToken: string;
+  placeId: string;
 }
 
 export interface RetrieveLocationResponse {
@@ -214,17 +208,19 @@ export interface RateRideRequest {
 // Nearby Drivers Types (optimized for map display)
 export interface NearbyDriver {
   id: string;
-  location: GeoPoint;
+  name: string;
   vehicleType: 'scooter';
-  vehicleColor?: string;
+  vehiclePlate: string;
   rating: number;
-  distanceMeters: number;
+  distanceM: number;
+  latitude: number;
+  longitude: number;
 }
 
 export interface GetNearbyDriversRequest {
-  location: GeoPoint;
-  radiusKm?: number;
-  limit?: number;
+  latitude: number;
+  longitude: number;
+  radiusM?: number;
 }
 
 export interface NearbyDriversResponse {
