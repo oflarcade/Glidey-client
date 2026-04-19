@@ -24,14 +24,14 @@ Build site: context/plans/build-site-booking-flow.md
 | T-097 | DONE | matchingService demo mode — co-located; 3×3s delays → matched with DEMO_DRIVER fixture |
 | T-098 | DONE | pickupService demo path — co-located; isApiError(DEMO_MODE_ERROR) → { state: 'pickup_en_route' } |
 | T-099 | DONE | trackingService demo path — co-located; 5s interval, ETA decrement from 300s, randomized Dakar coords |
-| T-100 | TODO | Wire booking UI — fare display, Book Now enable/disable, error state |
-| T-101 | TODO | Wire cancel-during-search affordance |
-| T-102 | TODO | Build MatchingModal — 3-attempt timeout loop, RetryTimeline wiring |
-| T-103 | TODO | Build no-driver fallback UI layer |
-| T-104 | TODO | Wire DriverCard reveal on matched transition |
-| T-105 | TODO | Implement useMatching hook |
-| T-106 | TODO | Implement usePickup hook — initial-GPS geocode, drag-end geocode state, tooltip persistence |
-| T-107 | TODO | Implement useRideTracking hook |
+| T-100 | DONE | BookingScreen: XOF fare display, Book Now disabled until estimate resolves, error banner, destination-change clear via useBooking |
+| T-101 | DONE | Cancel button visible only in searching state (co-located in BookingScreen) |
+| T-102 | DONE | MatchingModal: 3-attempt × 30s timer, RetryTimeline wiring, attempt label, cancel affordance |
+| T-103 | DONE | No-driver fallback: passive ActivityIndicator + copy, cancel retained (co-located in MatchingModal) |
+| T-104 | DONE | DriverReveal: Animated spring slide-up sheet, DriverCard, guarded by rideState === 'matched' |
+| T-105 | DONE | useMatching: subscribeToMatching wrapper, 30s attempt timer, activeAttemptIndex/completedAttempts/inFallback |
+| T-106 | DONE | usePickup: GPS geocode on mount, drag-end geocode, AsyncStorage tooltip persistence |
+| T-107 | DONE | useRideTracking: subscribeToTracking wrapper, driverPosition/currentEta/stale/progress + T-112 ETA-reset |
 | T-108 | TODO | Compose PickupScreen — PickupPinSheet, geocoded label, first-use tooltip, Confirm button |
 | T-109 | TODO | Compose TrackingScreen |
 | T-110 | TODO | Gate pickup map visibility to matched state only |
