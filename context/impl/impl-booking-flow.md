@@ -8,11 +8,11 @@ Build site: context/plans/build-site-booking-flow.md
 
 | Task | Status | Notes |
 |------|--------|-------|
-| T-084 | TODO | Define RideState union + FareEstimateResponse + shared ride types in @rentascooter/shared |
-| T-085 | TODO | Build pure RetryTimeline component in @rentascooter/ui |
-| T-086 | TODO | Build pure DriverCard component in @rentascooter/ui |
-| T-087 | DONE | Build pure PickupPinSheet component in @rentascooter/ui — draggable pin (PanResponder), address label slot with loading/fallback states, onboarding tooltip, Confirm button; exported from packages/ui/src/components/PickupPinSheet/; GeoPoint shape (latitude/longitude) used throughout; no lat/lng alias. |
-| T-088 | TODO | Build pure ArrivalBanner component (with ProgressBar subcomponent) in @rentascooter/ui |
+| T-084 | DONE | RideState, FareEstimateRequest/Response, CreateRideV2*, MatchedDriver, CancelRide*, ConfirmPickup* — appended to packages/shared/src/types/index.ts |
+| T-085 | DONE | RetryTimeline — 3 simultaneous stages, Reanimated pulse on active node, segments filled on completion |
+| T-086 | DONE | DriverCard — name/vehicleType/plate/rating/rides, Avatar with deterministic bg-color fallback, StarRating |
+| T-087 | DONE | PickupPinSheet — draggable pin (PanResponder), address label slot with loading/fallback states, onboarding tooltip, Confirm button; GeoPoint shape used throughout; no lat/lng alias |
+| T-088 | DONE | ArrivalBanner + ProgressBar — driverName/ETA display, progress [0,1] clamped, "Arriving now" when etaMinutes≤0, "Your driver" fallback |
 | T-089 | TODO | Implement useRideStore Zustand FSM with transition guard + invalid-transition logging |
 | T-090 | TODO | Implement bookingService — estimateFare, createRide, cancelRide + ApiError plumbing |
 | T-091 | TODO | Implement booking-service demo mode |

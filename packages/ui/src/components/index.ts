@@ -192,3 +192,13 @@ export type { ProfileStatsCardProps, ProfileStat } from './ProfileStatsCard';
 
 export { ProfileFieldRow } from './ProfileFieldRow';
 export type { ProfileFieldRowProps, VerificationStatus } from './ProfileFieldRow';
+
+// Phase 2 — Booking Flow Components
+export { RetryTimeline } from './RetryTimeline';
+export type { RetryTimelineProps } from './RetryTimeline';
+
+export { DriverCard } from './DriverCard';
+export type { DriverCardProps } from './DriverCard';
+
+export { ArrivalBanner, ProgressBar } from './ArrivalBanner';
+export type { ArrivalBannerProps, ProgressBarProps } from './ArrivalBanner';

@@ -300,3 +300,73 @@ export type {
 } from './location';
 
 export { DAKAR_CENTER, LOCATION_CONFIG } from './location';
+
+// ─── Phase 2: Ride FSM ────────────────────────────────────────────────────────
+
+export type RideState =
+  | 'idle'
+  | 'searching'
+  | 'matched'
+  | 'pickup_en_route'
+  | 'completed'
+  | 'cancelled'
+  | 'failed';
+
+// ─── Phase 2: Fare estimation ─────────────────────────────────────────────────
+
+export interface FareEstimateRequest {
+  distanceM: number;
+  durationS: number;
+}
+
+export interface FareEstimateResponse {
+  fareEstimate: number; // XOF whole number
+}
+
+// ─── Phase 2: Ride creation ───────────────────────────────────────────────────
+
+export interface CreateRideV2Request {
+  pickup: GeoPoint;
+  destination: Location;
+  distanceM: number;
+  durationS: number;
+}
+
+export interface CreateRideV2Response {
+  id: string;
+  state: RideState;
+}
+
+// ─── Phase 2: Matched driver ──────────────────────────────────────────────────
+
+export interface MatchedDriver {
+  id: string;
+  name: string;
+  vehiclePlate: string;
+  vehicleType: string; // free-text e.g. "scooter"
+  rating: number;
+  completedRides: number;
+  profilePhoto?: string; // URL; undefined → deterministic fallback avatar
+  location: GeoPoint;
+}
+
+// ─── Phase 2: Cancel ride ─────────────────────────────────────────────────────
+
+export interface CancelRideRequest {
+  rideId: string;
+}
+
+export interface CancelRideResponse {
+  success: boolean;
+}
+
+// ─── Phase 2: Confirm pickup (data protection — only after explicit user action)
+
+export interface ConfirmPickupRequest {
+  rideId: string;
+  pickup: GeoPoint;
+}
+
+export interface ConfirmPickupResponse {
+  state: RideState; // expected: 'pickup_en_route'
+}
