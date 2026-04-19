@@ -200,7 +200,7 @@ export function useNearbyDrivers(
 
   /**
    * Calculate distance to nearest driver
-   * Uses pre-calculated distanceMeters from backend when available
+   * Uses pre-calculated distanceM from backend when available
    */
   const nearestDriverDistance = useMemo((): number | null => {
     if (drivers.length === 0) return null;
@@ -209,9 +209,9 @@ export function useNearbyDrivers(
 
     for (const driver of drivers) {
       // Use pre-calculated distance from backend if available
-      const distance = driver.distanceMeters ?? (
-        currentGeoPoint && driver.location
-          ? calculateDistance(currentGeoPoint, driver.location)
+      const distance = driver.distanceM ?? (
+        currentGeoPoint && typeof driver.latitude === 'number' && typeof driver.longitude === 'number'
+          ? calculateDistance(currentGeoPoint, { latitude: driver.latitude, longitude: driver.longitude })
           : Infinity
       );
       
