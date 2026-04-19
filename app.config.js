@@ -7,7 +7,7 @@ module.exports = {
     name: 'GLIDEY',
     slug: 'glidey-client',
     version,
-    orientation: 'portrait',
+    orientation: 'default',
     icon: './assets/icon.png',
     scheme: 'glidey',
     userInterfaceStyle: 'automatic',
@@ -19,7 +19,7 @@ module.exports = {
     },
     assetBundlePatterns: ['**/*'],
     ios: {
-      supportsTablet: false,
+      supportsTablet: true,
       bundleIdentifier: 'com.glidey.client',
       buildNumber: String(buildNumber),
       config: {
@@ -35,6 +35,14 @@ module.exports = {
         NSCameraUsageDescription: 'We need camera access for profile pictures.',
         NSPhotoLibraryUsageDescription:
           'We need photo library access for profile pictures.',
+        NSAppTransportSecurity: {
+          NSExceptionDomains: {
+            '34.140.138.4': {
+              NSExceptionAllowsInsecureHTTPLoads: true,
+              NSIncludesSubdomains: false,
+            },
+          },
+        },
       },
     },
     android: {
@@ -57,6 +65,7 @@ module.exports = {
         {
           android: {
             kotlinVersion: '2.0.21',
+            usesCleartextTraffic: true,
           },
         },
       ],
