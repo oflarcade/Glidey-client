@@ -86,7 +86,7 @@ export const SidebarContent = memo(function SidebarContent({
 
   const profileStats: ProfileStat[] = useMemo(() => {
     const totalDistanceMeters = rides.reduce(
-      (sum, r) => sum + (r.route?.distanceMeters ?? 0),
+      (sum, r) => sum + (r.route?.distanceM ?? 0),
       0
     );
     const totalPaid = rides.reduce(

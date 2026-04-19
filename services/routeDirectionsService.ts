@@ -16,10 +16,10 @@ export interface RouteGeometry {
   coordinates: [number, number][];
 }
 
-/** Response from getRouteDirections callable. */
+/** Response from getRouteDirections callable. Replaced by REST in T-062. */
 export interface RouteDirectionsResponse {
-  distanceMeters: number;
-  durationSeconds: number;
+  distanceM: number;
+  durationS: number;
   geometry: RouteGeometry;
   polyline: string;
 }
@@ -35,7 +35,7 @@ export interface GetRouteDirectionsRequest {
  *
  * Backend calls Mapbox Directions v5 with geometries=geojson and overview=full.
  * Use response.geometry.coordinates for the route line on the map; use
- * distanceMeters and durationSeconds for fare/ETA.
+ * distanceM and durationS for fare/ETA.
  *
  * @param pickup - Pickup location (e.g. user location)
  * @param destination - Destination location
@@ -45,7 +45,7 @@ export interface GetRouteDirectionsRequest {
  * ```ts
  * const route = await getRouteDirections({ pickup, destination });
  * // route.geometry.coordinates → for ShapeSource + LineLayer
- * // route.distanceMeters, route.durationSeconds → for fare/ETA
+ * // route.distanceM, route.durationS → for fare/ETA
  * ```
  */
 export async function getRouteDirections(

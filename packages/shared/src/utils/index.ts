@@ -24,8 +24,8 @@ export function calculateDistance(from: GeoPoint, to: GeoPoint): number {
  * Calculate fare based on route information
  */
 export function calculateFare(route: RouteInfo): RideFare {
-  const distanceKm = route.distanceMeters / 1000;
-  const durationMinutes = route.durationSeconds / 60;
+  const distanceKm = route.distanceM / 1000;
+  const durationMinutes = route.durationS / 60;
 
   const baseFare = FARE_CONFIG.BASE_FARE;
   const distanceFare = Math.round(distanceKm * FARE_CONFIG.PER_KM_RATE);
