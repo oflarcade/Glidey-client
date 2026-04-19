@@ -168,6 +168,10 @@ export type { UserPositionPinProps, UserPositionPinSize } from './UserPositionPi
 export { DestinationPin } from './DestinationPin';
 export type { DestinationPinProps } from './DestinationPin';
 
+// Pickup Pin Sheet (draggable pin surface for pickup confirmation)
+export { PickupPinSheet } from './PickupPinSheet';
+export type { PickupPinSheetProps, PickupGeoPoint } from './PickupPinSheet';
+
 // Notification Item (notification list row)
 export { NotificationItem } from './NotificationItem';
 export type {
