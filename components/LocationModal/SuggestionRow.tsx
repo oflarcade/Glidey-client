@@ -26,11 +26,11 @@ export const SuggestionRow = memo(function SuggestionRow({
     onPress(suggestion);
   };
 
-  const primaryLine = suggestion.name ?? suggestion.fullAddress ?? 'Location';
+  const primaryLine = suggestion.name ?? suggestion.formattedAddress ?? 'Location';
   const secondaryLine =
-    suggestion.fullAddress && suggestion.fullAddress !== primaryLine
-      ? suggestion.fullAddress
-      : suggestion.address ?? '';
+    suggestion.formattedAddress && suggestion.formattedAddress !== primaryLine
+      ? suggestion.formattedAddress
+      : '';
 
   return (
     <Pressable

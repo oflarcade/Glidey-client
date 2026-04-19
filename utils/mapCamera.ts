@@ -1,6 +1,11 @@
 import type MapboxGL from '@rnmapbox/maps';
-import type { Location, RouteBounds } from '@rentascooter/shared';
+import type { Location } from '@rentascooter/shared';
 import { Dimensions } from 'react-native';
+
+interface RouteBounds {
+  ne: [number, number];
+  sw: [number, number];
+}
 
 /**
  * Calculate bounds that include both origin and destination
@@ -75,7 +80,7 @@ export function animateToRoute(
   });
 
   // Mapbox fitBounds expects padding as [top, right, bottom, left] or a single number
-  const padding = [
+  const paddingArray = [
     cameraPadding.paddingTop ?? 0,
     cameraPadding.paddingRight ?? 0,
     cameraPadding.paddingBottom ?? 0,
@@ -85,7 +90,7 @@ export function animateToRoute(
   cameraRef.current.fitBounds(
     bounds.ne,
     bounds.sw,
-    padding,
+    paddingArray,
     duration
   );
 }

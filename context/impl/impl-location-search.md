@@ -13,10 +13,10 @@ Build site: context/plans/build-site.md
 | T-022 | DONE | addressSearchService.placeDetail(): GET /locations/details?placeId= → ResolvedLocation |
 | T-023 | DONE | addressSearchService.getHistory(): GET /locations/history → LocationHistoryEntry[] |
 | T-024 | DONE | addressSearchService.saveHistory(): POST /locations/history; isDemoModeError helper |
-| T-025 | TODO | |
-| T-026 | TODO | |
-| T-027 | TODO | |
-| T-028 | TODO | |
-| T-029 | TODO | |
-| T-030 | TODO | |
-| T-031 | TODO | |
+| T-025 | DONE | hooks/useAutocompleteLocation.ts: autocomplete() + minLength=2, removed sessionToken/Mapbox fields |
+| T-026 | DONE | LocationModal: suggestion press calls placeDetail(suggestion.placeId) → ResolvedLocation |
+| T-027 | DONE | hooks/useLocationHistory.ts: React Query + getHistory(), maps LocationHistoryEntry→Location |
+| T-028 | DONE | LocationModal: history entry press calls saveHistory({...location, name: location.name ?? ''}) |
+| T-029 | DONE | hooks/useAddressSearch.ts: returns Suggestion[] from autocomplete() |
+| T-030 | DONE | addressSearchService.ts: DEMO_SUGGESTIONS/DEMO_PLACES/DEMO_HISTORY Dakar fixtures |
+| T-031 | DONE | services/index.ts: re-exports autocomplete, placeDetail, getHistory, saveHistory from addressSearchService |

@@ -38,3 +38,21 @@ Build site: context/plans/build-site.md
 - T-061: calculateFare + SidebarContent distanceM/durationS — DONE. Files: packages/shared/src/utils/index.ts, components/Sidebar/SidebarContent.tsx. Build P. Next: T-062
 - T-062: getRoute() GET /directions — DONE. Files: services/routeDirectionsService.ts. Build P. Next: T-063
 - T-063: polyline validation throws HTTP_ERROR — DONE. Files: services/routeDirectionsService.ts. Build P. Next: T-064
+
+### Wave 5 — 2026-04-19
+- T-025: useAutocompleteLocation rewrite — DONE. Files: hooks/useAutocompleteLocation.ts. Build P.
+- T-026: LocationModal placeDetail wiring — DONE. Files: components/LocationModal/LocationModal.tsx. Build P.
+- T-027: useLocationHistory React Query — DONE. Files: hooks/useLocationHistory.ts. Build P.
+- T-028: LocationModal saveHistory wiring — DONE. Files: components/LocationModal/LocationModal.tsx. Build P.
+- T-029: useAddressSearch rewrite — DONE. Files: hooks/useAddressSearch.ts. Build P.
+- T-030: addressSearchService demo fallbacks — DONE. Files: services/addressSearchService.ts. Build P.
+- T-031: services/index.ts new API surface exports — DONE. Files: services/index.ts. Build P.
+- T-044: applyCoordFallback jitter synthesis — DONE. Files: services/driversService.ts. Build P.
+- T-045: useNearbyDrivers applies applyCoordFallback — DONE. Files: hooks/useNearbyDrivers.ts. Build P.
+- T-048: driversService DEMO_DRIVERS Dakar fixtures — DONE. Files: services/driversService.ts. Build P.
+- T-064: index.tsx route polyline rendering — DONE. Files: app/(main)/index.tsx. Build P.
+- T-065: routeDirectionsService DEMO_ROUTE — DONE. Files: services/routeDirectionsService.ts. Build P.
+- T-081: useNearbyDrivers wired to getNearby+fallback — DONE. Files: hooks/useNearbyDrivers.ts. Build P.
+- T-082: useRouteDirections wired to getRoute — DONE. Files: hooks/useRouteDirections.ts. Build P.
+- T-080: TS strict sweep — DONE. Files: SuggestionRow.tsx, routeLineCoordinates.ts, mapCamera.ts, _layout.tsx. Build P.
+- T-083: On-device smoke test — BLOCKED (manual, requires physical device). Next: manual QA.

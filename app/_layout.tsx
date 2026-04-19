@@ -9,7 +9,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import MapboxGL from '@rnmapbox/maps';
-import { initializeFirebase, useAuthStore } from '@rentascooter/auth';
+import { initializeFirebase, getFirebaseAuth, useAuthStore } from '@rentascooter/auth';
+import { setTokenProvider, setRefreshProvider } from '@rentascooter/api';
 import { useTranslation } from '@rentascooter/i18n';
 import { useFonts } from '@rentascooter/ui';
 import { colors } from '@rentascooter/ui/theme';
@@ -62,6 +63,11 @@ export default function RootLayout() {
       appType: 'client',
       useEmulator: false, // Connect to deployed Firebase backend
     });
+
+    // Wire API token providers — must run after initializeFirebase
+    const auth = getFirebaseAuth();
+    setTokenProvider(() => auth.currentUser?.getIdToken() ?? Promise.resolve(null));
+    setRefreshProvider(() => auth.currentUser?.getIdToken(true) ?? Promise.resolve(null));
 
     // Set app type
     setAppType('client');

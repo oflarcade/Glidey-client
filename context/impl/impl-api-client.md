@@ -18,3 +18,5 @@ Build site: context/plans/build-site.md
 | T-008 | DONE | IS_DEMO sentinel + DEMO_MODE_ERROR in apiFetch; throws before any HTTP |
 | T-009 | DONE | app.config.js: HTTPS migration removal comments added to ATS/cleartext blocks |
 | T-010 | DONE | app.config.js: scoped ATS exception for 34.140.138.4 + usesCleartextTraffic via expo-build-properties |
+| T-080 | DONE | TS strict sweep: SuggestionRow(formattedAddress), routeLineCoordinates(polyline only), mapCamera(local RouteBounds), _layout(setTokenProvider+setRefreshProvider) |
+| T-083 | BLOCKED | Manual on-device smoke test — requires physical device + deployed backend; cannot automate |

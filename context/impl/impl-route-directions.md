@@ -12,5 +12,6 @@ Build site: context/plans/build-site.md
 | T-061 | DONE | calculateFare: distanceM/durationS; SidebarContent: distanceM |
 | T-062 | DONE | routeDirectionsService.getRoute(): GET /directions?originLat=&originLng=&destLat=&destLng= |
 | T-063 | DONE | Throws HTTP_ERROR if result.polyline falsy after apiFetch |
-| T-064 | TODO | |
-| T-065 | TODO | |
+| T-064 | DONE | app/(main)/index.tsx: ShapeSource+LineLayer for polyline; useRouteDirections+getRouteLineCoordinates |
+| T-065 | DONE | routeDirectionsService.ts: DEMO_ROUTE Dakar fixture; catch DEMO_MODE_ERROR in getRoute |
+| T-082 | DONE | hooks/useRouteDirections.ts: React Query, calls getRoute({originLat,originLng,destLat,destLng}) |
