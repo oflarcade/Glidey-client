@@ -67,7 +67,7 @@ export default function ClientMainScreen() {
   const { t } = useTranslation();
 
   // UI store for location modal state (sidebar toggle is in SidebarToggleButton)
-  const { isLocationModalOpen, closeLocationModal } = useUIStore();
+  const { isLocationModalOpen, closeLocationModal, openLocationModal } = useUIStore();
 
   // Ride store state for BookingSheet
   const rideState = useRideStore((s) => s.rideState);
@@ -229,6 +229,14 @@ export default function ClientMainScreen() {
   }, [cancelBooking]);
 
   /**
+   * Dismiss the booking sheet and reopen the location search modal.
+   */
+  const handleBookingDismissToSearch = useCallback(() => {
+    setSelectedDestination(null);
+    openLocationModal();
+  }, [openLocationModal]);
+
+  /**
    * Handle location modal close
    */
   const handleCloseLocationModal = useCallback(async () => {
@@ -267,11 +275,9 @@ export default function ClientMainScreen() {
       setSelectedDestination(destination);
       closeLocationModal();
 
-      const hasValidCoords =
-        isFinite(destination.latitude) &&
-        isFinite(destination.longitude) &&
-        destination.latitude !== 0 &&
-        destination.longitude !== 0;
+      const lat = Number(destination.latitude);
+      const lng = Number(destination.longitude);
+      const hasValidCoords = isFinite(lat) && isFinite(lng) && !(lat === 0 && lng === 0);
 
       if (cameraRef.current && hasValidCoords) {
         try {
@@ -362,8 +368,11 @@ export default function ClientMainScreen() {
           </MapboxGL.ShapeSource>
         )}
 
-        {/* Destination pin marker */}
-        {selectedDestination && (
+        {/* Destination pin marker — only render when coords are valid numbers */}
+        {selectedDestination &&
+          isFinite(selectedDestination.latitude) &&
+          isFinite(selectedDestination.longitude) &&
+          selectedDestination.latitude !== 0 && (
           <MapboxGL.MarkerView
             id="destination-marker"
             key={`destination-${selectedDestination.latitude}-${selectedDestination.longitude}`}
@@ -428,6 +437,7 @@ export default function ClientMainScreen() {
       {/* In-map booking sheet — auto-presents on destination confirmation (R1) */}
       <BookingSheet
         visible={showBookingSheet}
+        pickup={location ? { latitude: location.latitude, longitude: location.longitude, address: 'Ma position' } : null}
         destination={selectedDestination}
         distanceM={directions?.distanceM ?? 0}
         durationS={directions?.durationS ?? 0}
@@ -442,6 +452,7 @@ export default function ClientMainScreen() {
         onBookRide={bookRide}
         onCancel={handleBookingCancel}
         onDismiss={handleClearDestination}
+        onDismissToSearch={handleBookingDismissToSearch}
       />
 
       {/* Location Services Prompt Modal (centered dialog) */}

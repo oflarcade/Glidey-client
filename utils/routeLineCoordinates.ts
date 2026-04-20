@@ -12,12 +12,17 @@ import { decodePolylineToLngLat } from './decodePolyline';
  * Uses routeDirections.geometry.coordinates when present, else decoded
  * routeDirections.polyline, else straight line between location and destination.
  */
+function hasValidCoords(p: { latitude: number; longitude: number }): boolean {
+  return isFinite(p.latitude) && isFinite(p.longitude) && (p.latitude !== 0 || p.longitude !== 0);
+}
+
 export function getRouteLineCoordinates(
   routeDirections: RouteDirectionsResponse | null,
   location: { latitude: number; longitude: number } | null,
   destination: { latitude: number; longitude: number } | null
 ): [number, number][] {
   if (!location || !destination) return [];
+  if (!hasValidCoords(location) || !hasValidCoords(destination)) return [];
 
   // Decode encoded polyline from backend (output [lng, lat])
   if (routeDirections?.polyline && typeof routeDirections.polyline === 'string') {
