@@ -1,5 +1,5 @@
 import { memo, useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -68,6 +68,7 @@ interface BookingModeContentProps {
   canBook: boolean;
   isBusy: boolean;
   onBookRide: () => void;
+  onTapDestination: () => void;
 }
 
 function BookingModeContent({
@@ -81,10 +82,11 @@ function BookingModeContent({
   canBook,
   isBusy,
   onBookRide,
+  onTapDestination,
 }: BookingModeContentProps) {
   return (
     <View style={styles.body}>
-      <View style={styles.row}>
+      <Pressable style={styles.row} onPress={onTapDestination}>
         <Text style={styles.rowLabel}>Destination</Text>
         <View style={styles.rowValueCol}>
           {destination?.name ? (
@@ -94,7 +96,7 @@ function BookingModeContent({
             <Text style={styles.rowSubValue} numberOfLines={1}>{destination.address}</Text>
           ) : null}
         </View>
-      </View>
+      </Pressable>
 
       {distanceM > 0 && (
         <View style={styles.row}>
@@ -188,6 +190,7 @@ export const BookingSheet = memo(function BookingSheet({
 }: BookingSheetProps) {
   const insets = useSafeAreaInsets();
   const sheetMode = useUIStore(selectSheetMode);
+  const setSheetMode = useUIStore((s) => s.setSheetMode);
 
   // ── Snap state ──
   const [snap, setSnap] = useState<SnapLevel>('peek');
@@ -407,8 +410,7 @@ export const BookingSheet = memo(function BookingSheet({
                     </TouchableOpacity>
                   </View>
                 ) : isMatched ? null : snap === 'mini' ? (
-                  /* ── Mini: condensed destination row (T-127 adds Pressable) ── */
-                  <View style={styles.miniBody}>
+                  <Pressable style={styles.miniBody} onPress={() => setSheetMode('search')}>
                     <Icon name="map-pin" size={18} color={colors.primary.main} />
                     <View style={styles.miniDestCol}>
                       <Text style={styles.miniDestName} numberOfLines={1}>
@@ -416,7 +418,7 @@ export const BookingSheet = memo(function BookingSheet({
                       </Text>
                     </View>
                     <Icon name="chevron-right" size={18} color={colors.text.tertiary} />
-                  </View>
+                  </Pressable>
                 ) : (
                   <BookingModeContent
                     destination={destination}
@@ -429,6 +431,7 @@ export const BookingSheet = memo(function BookingSheet({
                     canBook={canBook}
                     isBusy={isBusy}
                     onBookRide={onBookRide}
+                    onTapDestination={() => setSheetMode('search')}
                   />
                 )}
               </Animated.View>
