@@ -25,9 +25,8 @@ export {
 export {
   useUIStore,
   selectIsSidebarOpen,
-  selectIsLocationModalOpen,
-  selectActiveBottomSheet,
-  type BottomSheetType,
+  selectSheetMode,
+  type SheetMode,
 } from './uiStore';
 
 export {
