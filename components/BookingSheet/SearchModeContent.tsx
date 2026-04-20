@@ -1,7 +1,8 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Keyboard, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
 import type { Location, Suggestion } from '@rentascooter/shared';
+import { useUIStore, selectSheetMode } from '@rentascooter/shared';
 import { SearchInput, type SearchInputRef } from '../LocationModal/SearchInput';
 import { LocationHistoryList } from '../LocationModal/LocationHistoryList';
 import { LocationSearchList } from '../LocationModal/LocationSearchList';
@@ -24,6 +25,18 @@ export const SearchModeContent = memo(function SearchModeContent({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [retrieveError, setRetrieveError] = useState<string | null>(null);
+
+  const sheetMode = useUIStore(selectSheetMode);
+  const prevSheetModeRef = useRef(sheetMode);
+
+  useEffect(() => {
+    const prev = prevSheetModeRef.current;
+    prevSheetModeRef.current = sheetMode;
+    if (sheetMode === 'search' && prev !== 'search') {
+      const raf = requestAnimationFrame(() => searchInputRef.current?.focus());
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [sheetMode]);
 
   const {
     suggestions,
@@ -96,7 +109,11 @@ export const SearchModeContent = memo(function SearchModeContent({
   );
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={20}
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Welcome, {userName}</Text>
       </View>
@@ -134,7 +151,7 @@ export const SearchModeContent = memo(function SearchModeContent({
           testID="search-mode-history-list"
         />
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 });
 
