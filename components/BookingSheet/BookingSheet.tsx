@@ -19,7 +19,7 @@ import type { ScooterTypeOption } from '@/components/ScooterCarousel/ScooterCaro
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MINI_HEIGHT = 130;  // compact summary + CTA
+const MINI_HEIGHT = 155;  // compact summary + CTA
 const PEEK_HEIGHT = 330;  // vehicle carousel visible
 const FULL_HEIGHT = 580;  // full form
 const SPRING = { damping: 14, stiffness: 280, mass: 0.8 };
@@ -369,22 +369,23 @@ const styles = StyleSheet.create({
     elevation: 16,
   },
   handleZone: {
-    paddingTop: 14,
-    paddingBottom: 8,
+    paddingTop: 10,
+    paddingBottom: 6,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
-    flexDirection: 'row',
+    justifyContent: 'center',
+    position: 'relative',
   },
   handle: {
-    flex: 1,
-    height: 5,
-    width: 44,
-    borderRadius: 3,
+    width: 40,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: colors.border.light,
-    alignSelf: 'center',
-    marginLeft: 28, // balance the X button width
   },
   xBtn: {
+    position: 'absolute',
+    right: spacing.lg,
+    top: 6,
     width: 28,
     height: 28,
     alignItems: 'center',
