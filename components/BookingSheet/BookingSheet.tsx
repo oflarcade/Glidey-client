@@ -197,6 +197,10 @@ export const BookingSheet = memo(function BookingSheet({
   const translateY = useSharedValue(FULL_HEIGHT);
   const gestureStart = useSharedValue(0);
   const snapLevel = useSharedValue(1);
+  // Mirrors booking/matching mode into worklet space to lock gesture to peek
+  const isBookingModeShared = useSharedValue(
+    sheetMode === 'booking' || sheetMode === 'matching' ? 1 : 0
+  );
 
   // ── Mode transition animation ──
   const isSearchMode = sheetMode === 'search';
@@ -267,17 +271,12 @@ export const BookingSheet = memo(function BookingSheet({
     }
   }, [visible, translateY, snapLevel]);
 
-  // Auto-snap to peek when booking mode activates — PEEK_HEIGHT now fits all content + CTA
+  // Auto-snap to peek on mode change; sync booking flag into worklet space
   useEffect(() => {
-    if (sheetMode === 'booking' || sheetMode === 'matching') {
-      snapLevel.value = 1;
-      translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
-      setSnap('peek');
-    } else if (sheetMode === 'search') {
-      snapLevel.value = 1;
-      translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
-      setSnap('peek');
-    }
+    isBookingModeShared.value = sheetMode === 'booking' || sheetMode === 'matching' ? 1 : 0;
+    snapLevel.value = 1;
+    translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
+    setSnap('peek');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheetMode]);
 
@@ -290,6 +289,13 @@ export const BookingSheet = memo(function BookingSheet({
       translateY.value = Math.max(0, Math.min(FULL_HEIGHT, next));
     })
     .onEnd((e) => {
+      // Booking/matching mode: no scrolling — always lock at peek
+      if (isBookingModeShared.value === 1) {
+        snapLevel.value = 1;
+        translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
+        runOnJS(snapToPeek)();
+        return;
+      }
       // Fast flick down from mini → dismiss
       if (e.velocityY > 800 && snapLevel.value === 0) {
         translateY.value = withSpring(FULL_HEIGHT, SPRING);
