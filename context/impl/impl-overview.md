@@ -12,8 +12,9 @@ last_edited: "2026-04-19"
 | location-search | 12 | 12 | DONE |
 | nearby-drivers | 10 | 10 | DONE |
 | route-directions | 7 | 7 | DONE |
-| booking-flow | 1 | 36 | IN PROGRESS |
-| **Total** | **42** | **77** | **Phase 2 started** |
+| booking-flow | 36 | 36 | DONE |
+| booking-sheet-ux | 9 | 9 | DONE |
+| **Total** | **86** | **86** | **Phase 2 complete** |
 
 ## Notes
 - T-083 completed 2026-04-19: on-device smoke test passed. 3 bugs fixed during QA (ATS Info.plist, address/formattedAddress mapping, lat-lng/latitude-longitude mapping). See impl-api-client.md for details.

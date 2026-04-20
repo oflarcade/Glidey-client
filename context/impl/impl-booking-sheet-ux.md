@@ -8,59 +8,44 @@ Build site: context/plans/build-site.md
 
 | Task | Status | Notes |
 |------|--------|-------|
-| T-057 | GAP | Kit R1: booking sheet should auto-present on destination confirmation over the map. Current impl: router.push('/(main)/booking') — a standalone route, not an in-map sheet. |
-| T-058 | GAP | Kit R2: snap-point behavior and gesture arbitration not implemented — standalone route has no sheet snap points |
-| T-059 | DONE | Kit R3: booking.tsx:89-96 — destination row renders name/address from params |
-| T-060 | GAP | Kit R4: ScooterCarousel component exists (components/ScooterCarousel/) but uses hardcoded DEFAULT_OPTIONS and dollar prices, not backend FareEstimateResponse data. booking.tsx does not use ScooterCarousel — uses inline fare row instead. |
-| T-061 | GAP | Kit R5: payment row placeholder not in booking.tsx |
-| T-062 | DONE | Kit R6: booking.tsx:133-144 — Book Now button disabled while isFareLoading or !canBook; isBusy disables during in-flight; delegates to bookRide() |
-| T-063 | GAP | Kit R7: in-sheet searching state — MatchingModal is a separate Modal overlay (not in-sheet replacement); route stack changes do occur (standalone booking screen navigated to) |
-| T-064 | GAP | Kit R8: standalone booking route app/(main)/booking.tsx still exists; kit requires it retired |
-| T-065 | GAP | Kit R9: type-safety — booking.tsx has no `any` types; however full in-map sheet not yet implemented |
+| T-057 | DONE | BookingSheet component renders in-map; `visible={selectedDestination !== null}` in index.tsx:439; no route navigation |
+| T-058 | DONE | 3 snap points (MINI=155, PEEK=330, FULL=580); Reanimated `useSharedValue` + RNGH `GestureDetector` wrapping full sheet; spring `{ damping:14, stiffness:280, mass:0.8 }` |
+| T-059 | DONE | Destination row shows name + address in BookingSheet peek/full states |
+| T-060 | DONE | Vehicle-type carousel backed by `fareEstimates: FareEstimateItem[]` prop; selectable cards with XOF prices; isFareLoading spinner |
+| T-061 | DONE | Payment row placeholder rendered below carousel in peek/full states |
+| T-062 | DONE | Book Now button calls `onBookRide(selectedVehicleTypeId)`; disabled when no vehicle selected, isFareLoading, or isBusy |
+| T-063 | DONE | In-sheet searching state: `useMatching(isSearching ? rideId : null)` embedded; RetryTimeline + DriverReveal replace form content inside the sheet |
+| T-064 | DONE | `app/(main)/booking.tsx` replaced with `<Redirect href="/(main)/" />`; no route refs to /booking remain |
+| T-065 | DONE | `BookingSheetProps` interface exported; all props typed; no `any`; GeoPoint/Location/RideState from @rentascooter/shared |
 
 ## Audit Notes
 
-**T-057 — Automatic sheet presentation (kit R1)**
-- Current: `app/(main)/booking.tsx` is a standalone route pushed via router.push
-- Kit requires in-map bottom sheet that opens over the map without route navigation
-- GAP: navigation-based presentation, not in-map sheet
+**T-057 — Automatic sheet presentation**
+- `app/(main)/index.tsx:125` — `showBookingSheet = selectedDestination !== null`
+- `app/(main)/index.tsx:438` — `<BookingSheet visible={showBookingSheet} ...>`
+- No router.push — sheet is a positioned View rendered over the map
+- DONE
 
-**T-058 — Snap-point behavior (kit R2)**
-- Not implemented — no bottom sheet library (react-native-bottom-sheet or equivalent) in use
-- GAP
+**T-058 — Snap-point behavior + gesture arbitration**
+- `components/BookingSheet/BookingSheet.tsx` — `snapLevel` shared value (0=mini,1=peek,2=full)
+- `MINI_HEIGHT=155`, `PEEK_HEIGHT=330`, `FULL_HEIGHT=580`
+- `GestureDetector` wraps entire `Animated.View`; `pointerEvents='auto'`
+- `runOnJS(setSnapFn)()` syncs worklet snap state to JS side for content rendering
+- DONE
 
-**T-059 — Destination row (kit R3)**
-- `booking.tsx:89-96` — destination name/address rendered
-- `booking.tsx:91-93` — shows name or address
-- PARTIAL: kit requires name AND address displayed; booking.tsx shows `destination.name || destination.address || '—'` (single string, not both)
+**T-060 — Vehicle-type carousel**
+- Props: `fareEstimates: FareEstimateItem[]`, `selectedVehicleTypeId`, `onSelectVehicleType`
+- Carousel cards show vehicleTypeName + iconKey icon + formatted XOF fare
+- Wired to `useBooking` hook which pre-fetches from `/fare/estimate`
+- DONE
 
-**T-060 — Vehicle-type carousel (kit R4)**
-- `ScooterCarousel/ScooterCarousel.tsx` exists but uses `DEFAULT_OPTIONS` with hardcoded dollar prices
-- `booking.tsx` does NOT use ScooterCarousel — renders a single fare row for selectedEstimate only
-- Kit requires: carousel backed by backend catalog + per-type fare estimates, selectable cards
-- GAP: no carousel integration with FareEstimateResponse in booking screen
+**T-063 — In-sheet searching state**
+- `useMatching(isSearching ? rideId : null)` embedded in BookingSheet
+- When `rideState === 'searching'`: RetryTimeline replaces fare form; cancel shown
+- When `rideState === 'matched'`: DriverReveal slides up inside sheet
+- DONE
 
-**T-061 — Payment row placeholder (kit R5)**
-- Not present in `booking.tsx`
-- GAP
-
-**T-062 — Book Now action (kit R6)**
-- `booking.tsx:62` — `canBook = !isFareLoading && !fareError && selectedEstimate !== null && !isBusy`
-- `booking.tsx:133` — button disabled when !canBook
-- `booking.tsx:139-142` — shows ActivityIndicator while isBusy; renders "Réserver maintenant" when idle
-- `booking.tsx:136` — onPress={bookRide} — delegates to hook
-- SATISFIED for kit R6 requirements (disabled states, concurrent guard via busyRef in useBooking)
-
-**T-063 — In-sheet searching state (kit R7)**
-- `booking.tsx:147-153` — MatchingModal rendered as separate Modal overlay, not in-sheet
-- `booking.tsx:125-130` — cancel button shown while isSearching (separate from sheet)
-- Kit requires: in-sheet content replacement, no route navigation — GAP
-
-**T-064 — Retired booking route (kit R8)**
-- `app/(main)/booking.tsx` still exists as standalone route
-- GAP — kit requires zero references to standalone booking route
-
-**T-065 — Type-safety (kit R9)**
-- `booking.tsx` has no `any` types; imports GeoPoint, Location from @rentascooter/shared
-- `useBooking.ts` — fully typed
-- PARTIAL: full in-map sheet not yet implemented, so full type-safety audit deferred
+**T-064 — Retire /booking route**
+- `app/(main)/booking.tsx`: single `<Redirect href="/(main)/" />`
+- No remaining navigation calls to `/(main)/booking` in codebase
+- DONE
