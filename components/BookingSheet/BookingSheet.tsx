@@ -145,20 +145,19 @@ export const BookingSheet = memo(function BookingSheet({
 
   return (
     <>
-      <Animated.View
-        style={[
-          styles.sheet,
-          { paddingBottom: insets.bottom + spacing.md, height: FULL_HEIGHT },
-          sheetStyle,
-        ]}
-        pointerEvents={visible ? 'box-none' : 'none'}
-      >
-        {/* Drag handle — gesture zone (R2) */}
-        <GestureDetector gesture={panGesture}>
+      <GestureDetector gesture={panGesture}>
+        <Animated.View
+          style={[
+            styles.sheet,
+            { paddingBottom: insets.bottom + spacing.md, height: FULL_HEIGHT },
+            sheetStyle,
+          ]}
+          pointerEvents={visible ? 'auto' : 'none'}
+        >
+          {/* Drag handle indicator (R2) */}
           <View style={styles.handleZone}>
             <View style={styles.handle} />
           </View>
-        </GestureDetector>
 
         {isSearching ? (
           /* ── Searching state (R7) ── */
@@ -258,7 +257,8 @@ export const BookingSheet = memo(function BookingSheet({
             </TouchableOpacity>
           </View>
         )}
-      </Animated.View>
+        </Animated.View>
+      </GestureDetector>
 
       {/* Driver reveal slides up from bottom on match */}
       <DriverReveal visible={isMatched} />
@@ -284,13 +284,13 @@ const styles = StyleSheet.create({
     elevation: 16,
   },
   handleZone: {
-    paddingVertical: spacing.sm,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
+    width: 44,
+    height: 5,
+    borderRadius: 3,
     backgroundColor: colors.border.light,
   },
   body: {
