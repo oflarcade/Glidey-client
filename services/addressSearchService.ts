@@ -77,8 +77,9 @@ export async function autocomplete(query: string): Promise<Suggestion[]> {
  */
 export async function placeDetail(placeId: string): Promise<ResolvedLocation> {
   try {
-    const data = await authedFetch('GET', `/locations/details?placeId=${encodeURIComponent(placeId)}`);
-    return data as ResolvedLocation;
+    // Backend returns { lat, lng, name, address } — map to client shape
+    const data = await authedFetch('GET', `/locations/details?placeId=${encodeURIComponent(placeId)}`) as { lat: number; lng: number; name: string; address: string };
+    return { latitude: data.lat, longitude: data.lng, name: data.name, address: data.address };
   } catch (e) {
     if (isApiError(e) && e.code === DEMO_MODE_ERROR.code) {
       return DEMO_PLACES[placeId] ?? DEMO_PLACES['demo-1'];
@@ -95,8 +96,9 @@ export async function placeDetail(placeId: string): Promise<ResolvedLocation> {
  */
 export async function getHistory(): Promise<LocationHistoryEntry[]> {
   try {
-    const data = await authedFetch('GET', '/locations/history');
-    return data as LocationHistoryEntry[];
+    // Backend returns { lat, lng, ... } — map to client shape
+    const data = await authedFetch('GET', '/locations/history') as Array<{ lat: number; lng: number; address: string; name: string; frequency: number; lastUsedAt: string }>;
+    return data.map((r) => ({ latitude: r.lat, longitude: r.lng, address: r.address, name: r.name, frequency: r.frequency, lastUsedAt: r.lastUsedAt }));
   } catch (e) {
     if (isApiError(e) && e.code === DEMO_MODE_ERROR.code) return DEMO_HISTORY;
     throw e;
@@ -116,7 +118,8 @@ export async function saveHistory(entry: {
   latitude: number;
   longitude: number;
 }): Promise<void> {
-  await authedFetch('POST', '/locations/history', entry);
+  // Backend expects { lat, lng } — map from client shape
+  await authedFetch('POST', '/locations/history', { address: entry.address, name: entry.name, lat: entry.latitude, lng: entry.longitude });
 }
 
 // ─── Demo mode helpers (consumed by T-030 / T-031) ───────────────────────────
