@@ -19,7 +19,7 @@ type UIStore = UIState & UIActions;
 
 const initialState: UIState = {
   isSidebarOpen: false,
-  sheetMode: 'idle',
+  sheetMode: 'search', // Sheet opens in search mode on app entry
 };
 
 export const useUIStore = create<UIStore>()((set) => ({

@@ -16,7 +16,7 @@ import {
 import { colors, spacing } from '@rentascooter/ui/theme';
 import { SidebarToggleButton } from '@/components/Sidebar';
 import { useTranslation } from '@rentascooter/i18n';
-import { useUIStore } from '@rentascooter/shared';
+import { useUIStore, selectSheetMode } from '@rentascooter/shared';
 import type { Location } from '@rentascooter/shared';
 import Constants from 'expo-constants';
 import { useNearbyDrivers, type NearbyDriver } from '@/hooks/useNearbyDrivers';
@@ -66,8 +66,9 @@ export default function ClientMainScreen() {
   const { profile } = useUser();
   const { t } = useTranslation();
 
-  // UI store for location modal state (sidebar toggle is in SidebarToggleButton)
-  const { isLocationModalOpen, closeLocationModal, openLocationModal } = useUIStore();
+  // UI store: single sheetMode atom drives all sheet/modal visibility
+  const sheetMode = useUIStore(selectSheetMode);
+  const setSheetMode = useUIStore((s) => s.setSheetMode);
 
   // Ride store state for BookingSheet
   const rideState = useRideStore((s) => s.rideState);
@@ -121,8 +122,8 @@ export default function ClientMainScreen() {
     destination: selectedDestination,
   });
 
-  // Booking sheet is visible when a destination is selected (auto-presents on confirmation, R1)
-  const showBookingSheet = selectedDestination !== null;
+  // Sheet is visible whenever sheetMode is not idle (driven by sheetMode atom, not destination)
+  const showBookingSheet = sheetMode !== 'idle';
 
   const pickup: GeoPoint | null = location
     ? { latitude: location.latitude, longitude: location.longitude }
@@ -229,20 +230,20 @@ export default function ClientMainScreen() {
   }, [cancelBooking]);
 
   /**
-   * Dismiss the booking sheet and reopen the location search modal.
+   * Dismiss the booking sheet and return to search mode.
    */
   const handleBookingDismissToSearch = useCallback(() => {
     setSelectedDestination(null);
-    openLocationModal();
-  }, [openLocationModal]);
+    setSheetMode('search');
+  }, [setSheetMode]);
 
   /**
    * Handle location modal close
    */
   const handleCloseLocationModal = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    closeLocationModal();
-  }, [closeLocationModal]);
+    setSheetMode('idle');
+  }, [setSheetMode]);
 
   /**
    * Handle clearing destination
@@ -266,14 +267,14 @@ export default function ClientMainScreen() {
   }, [location]);
 
   /**
-   * Handle destination selection
+   * Handle destination confirmation — transitions sheet to booking mode.
    */
   const handleDestinationSelect = useCallback(
     async (destination: Location) => {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       setSelectedDestination(destination);
-      closeLocationModal();
+      setSheetMode('booking');
 
       const lat = Number(destination.latitude);
       const lng = Number(destination.longitude);
@@ -292,7 +293,7 @@ export default function ClientMainScreen() {
         }
       }
     },
-    [closeLocationModal]
+    [setSheetMode]
   );
 
   /**
@@ -318,11 +319,11 @@ export default function ClientMainScreen() {
   const topBarOffset = insets.top + 56 + spacing.sm;
 
   // Destination tip offset (below modal when open)
-  const destinationTipOffset = isLocationModalOpen ? topBarOffset + 80 : topBarOffset;
+  const destinationTipOffset = sheetMode === 'search' ? topBarOffset + 80 : topBarOffset;
 
-  // UserPositionButton offset (reposition when modal opens)
-  const userPositionButtonBottom = isLocationModalOpen
-    ? insets.bottom + spacing.xl + 200 // Offset by modal height
+  // UserPositionButton offset (reposition when sheet is in search mode)
+  const userPositionButtonBottom = sheetMode === 'search'
+    ? insets.bottom + spacing.xl + 200
     : insets.bottom + spacing.xl;
 
   // Convert user location to Location type for modal
@@ -424,7 +425,7 @@ export default function ClientMainScreen() {
 
       {/* Location Selection Modal (BottomSheet). Rendered before LocationServicePrompt so that when both could be visible, the prompt appears on top. */}
       <LocationModal
-        isOpen={isLocationModalOpen}
+        isOpen={sheetMode === 'search'}
         onClose={handleCloseLocationModal}
         selectedDestination={selectedDestination}
         onDestinationSelect={handleDestinationSelect}

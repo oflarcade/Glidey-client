@@ -13,6 +13,7 @@ import { RetryTimeline } from '@rentascooter/ui';
 import { ScooterCarousel } from '@/components/ScooterCarousel/ScooterCarousel';
 import { DriverReveal } from '@/components/DriverReveal/DriverReveal';
 import { useMatching } from '@/hooks/useMatching';
+import { useUIStore, selectSheetMode } from '@rentascooter/shared';
 import type { FareEstimateItem, Location } from '@rentascooter/shared';
 import type { IconName } from '@rentascooter/ui';
 import type { ScooterTypeOption } from '@/components/ScooterCarousel/ScooterCarousel';
@@ -47,6 +48,97 @@ function formatXOF(amount: number): string {
 function truncate(str: string | undefined | null, max: number): string {
   if (!str) return '';
   return str.length > max ? str.slice(0, max - 1) + '…' : str;
+}
+
+// ─── BookingModeContent ───────────────────────────────────────────────────────
+
+interface BookingModeContentProps {
+  destination: Location | null;
+  distanceM: number;
+  isFareLoading: boolean;
+  fareError: string | null;
+  carouselOptions: ScooterTypeOption[];
+  selectedVehicleTypeId: string | null;
+  onSelectVehicleType: (id: string) => void;
+  canBook: boolean;
+  isBusy: boolean;
+  onBookRide: () => void;
+}
+
+function BookingModeContent({
+  destination,
+  distanceM,
+  isFareLoading,
+  fareError,
+  carouselOptions,
+  selectedVehicleTypeId,
+  onSelectVehicleType,
+  canBook,
+  isBusy,
+  onBookRide,
+}: BookingModeContentProps) {
+  return (
+    <View style={styles.body}>
+      {/* Destination row */}
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>Destination</Text>
+        <View style={styles.rowValueCol}>
+          {destination?.name ? (
+            <Text style={styles.rowValue} numberOfLines={1}>{destination.name}</Text>
+          ) : null}
+          {destination?.address ? (
+            <Text style={styles.rowSubValue} numberOfLines={1}>{destination.address}</Text>
+          ) : null}
+        </View>
+      </View>
+
+      {/* Distance row */}
+      {distanceM > 0 && (
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>Distance</Text>
+          <Text style={styles.rowValue}>{(distanceM / 1000).toFixed(1)} km</Text>
+        </View>
+      )}
+
+      {/* Vehicle-type carousel */}
+      <View style={styles.carouselWrap}>
+        {isFareLoading ? (
+          <View style={styles.fareLoading}>
+            <ActivityIndicator size="small" color={colors.primary.main} />
+            <Text style={styles.fareLoadingText}>Calcul du tarif…</Text>
+          </View>
+        ) : fareError ? (
+          <Text style={styles.errorText}>{fareError}</Text>
+        ) : carouselOptions.length > 0 ? (
+          <ScooterCarousel
+            options={carouselOptions}
+            selectedId={selectedVehicleTypeId}
+            onSelect={onSelectVehicleType}
+            title="Type de véhicule"
+          />
+        ) : null}
+      </View>
+
+      {/* Payment row placeholder */}
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>Paiement</Text>
+        <Text style={styles.rowValue}>Espèces</Text>
+      </View>
+
+      {/* Book Now */}
+      <TouchableOpacity
+        style={[styles.bookBtn, !canBook && styles.bookBtnDisabled]}
+        onPress={onBookRide}
+        disabled={!canBook}
+      >
+        {isBusy ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.bookBtnText}>Réserver maintenant</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -91,6 +183,7 @@ export const BookingSheet = memo(function BookingSheet({
   onDismissToSearch,
 }: BookingSheetProps) {
   const insets = useSafeAreaInsets();
+  const sheetMode = useUIStore(selectSheetMode);
 
   // JS-side snap state drives which content is shown
   const [snap, setSnap] = useState<SnapLevel>('peek');
@@ -217,7 +310,7 @@ export const BookingSheet = memo(function BookingSheet({
           ]}
           pointerEvents={visible ? 'auto' : 'none'}
         >
-          {/* Handle + header row */}
+          {/* Handle + header row — visible in all modes */}
           <View style={styles.handleZone}>
             <View style={styles.handle} />
             <TouchableOpacity style={styles.xBtn} onPress={onDismissToSearch} hitSlop={12}>
@@ -225,7 +318,10 @@ export const BookingSheet = memo(function BookingSheet({
             </TouchableOpacity>
           </View>
 
-          {isSearching ? (
+          {sheetMode === 'search' ? (
+            /* ── Search mode content — wired in T-126 ── */
+            null
+          ) : isSearching ? (
             /* ── Searching state ── */
             <View style={styles.searchingBody}>
               {inFallback ? (
@@ -281,67 +377,19 @@ export const BookingSheet = memo(function BookingSheet({
               </TouchableOpacity>
             </View>
           ) : (
-            /* ── Peek / Full: full booking form ── */
-            <View style={styles.body}>
-              {/* Destination row */}
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>Destination</Text>
-                <View style={styles.rowValueCol}>
-                  {destination?.name ? (
-                    <Text style={styles.rowValue} numberOfLines={1}>{destination.name}</Text>
-                  ) : null}
-                  {destination?.address ? (
-                    <Text style={styles.rowSubValue} numberOfLines={1}>{destination.address}</Text>
-                  ) : null}
-                </View>
-              </View>
-
-              {/* Distance row */}
-              {distanceM > 0 && (
-                <View style={styles.row}>
-                  <Text style={styles.rowLabel}>Distance</Text>
-                  <Text style={styles.rowValue}>{(distanceM / 1000).toFixed(1)} km</Text>
-                </View>
-              )}
-
-              {/* Vehicle-type carousel */}
-              <View style={styles.carouselWrap}>
-                {isFareLoading ? (
-                  <View style={styles.fareLoading}>
-                    <ActivityIndicator size="small" color={colors.primary.main} />
-                    <Text style={styles.fareLoadingText}>Calcul du tarif…</Text>
-                  </View>
-                ) : fareError ? (
-                  <Text style={styles.errorText}>{fareError}</Text>
-                ) : carouselOptions.length > 0 ? (
-                  <ScooterCarousel
-                    options={carouselOptions}
-                    selectedId={selectedVehicleTypeId}
-                    onSelect={onSelectVehicleType}
-                    title="Type de véhicule"
-                  />
-                ) : null}
-              </View>
-
-              {/* Payment row placeholder */}
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>Paiement</Text>
-                <Text style={styles.rowValue}>Espèces</Text>
-              </View>
-
-              {/* Book Now */}
-              <TouchableOpacity
-                style={[styles.bookBtn, !canBook && styles.bookBtnDisabled]}
-                onPress={onBookRide}
-                disabled={!canBook}
-              >
-                {isBusy ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.bookBtnText}>Réserver maintenant</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            /* ── Peek / Full: BookingModeContent ── */
+            <BookingModeContent
+              destination={destination}
+              distanceM={distanceM}
+              isFareLoading={isFareLoading}
+              fareError={fareError}
+              carouselOptions={carouselOptions}
+              selectedVehicleTypeId={selectedVehicleTypeId}
+              onSelectVehicleType={onSelectVehicleType}
+              canBook={canBook}
+              isBusy={isBusy}
+              onBookRide={onBookRide}
+            />
           )}
         </Animated.View>
       </GestureDetector>
