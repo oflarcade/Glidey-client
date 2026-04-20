@@ -51,14 +51,15 @@ export default function BookingScreen() {
   const rideState = useRideStore((s) => s.rideState);
   const rideId = useRideStore((s) => s.rideId);
 
-  const { fareEstimate, isFareLoading, fareError, isBusy, bookRide, cancel } = useBooking({
+  const { fareEstimates, selectedVehicleTypeId, isFareLoading, fareError, isBusy, bookRide, cancel } = useBooking({
     pickup,
     destination,
     distanceM,
     durationS,
   });
 
-  const canBook = !isFareLoading && !fareError && fareEstimate !== null && !isBusy;
+  const selectedEstimate = fareEstimates?.find((e) => e.vehicleTypeId === selectedVehicleTypeId) ?? fareEstimates?.[0] ?? null;
+  const canBook = !isFareLoading && !fareError && selectedEstimate !== null && !isBusy;
   const isSearching = rideState === 'searching';
   const isMatched = rideState === 'matched';
 
@@ -107,8 +108,8 @@ export default function BookingScreen() {
             <ActivityIndicator size="small" color={colors.primary.main} />
           ) : fareError ? (
             <Text style={styles.errorText}>Indisponible</Text>
-          ) : fareEstimate ? (
-            <Text style={styles.fareText}>{formatXOF(fareEstimate.fareEstimate)}</Text>
+          ) : selectedEstimate ? (
+            <Text style={styles.fareText}>{formatXOF(selectedEstimate.fareEstimate)}</Text>
           ) : (
             <Text style={styles.value}>—</Text>
           )}

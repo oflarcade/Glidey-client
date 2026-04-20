@@ -312,6 +312,18 @@ export type RideState =
   | 'cancelled'
   | 'failed';
 
+// ─── Phase 2: Vehicle catalog ─────────────────────────────────────────────────
+
+export interface VehicleType {
+  id: string;
+  name: string;
+  iconKey: string;
+}
+
+export interface VehicleTypesResponse {
+  vehicleTypes: VehicleType[];
+}
+
 // ─── Phase 2: Fare estimation ─────────────────────────────────────────────────
 
 export interface FareEstimateRequest {
@@ -319,8 +331,15 @@ export interface FareEstimateRequest {
   durationS: number;
 }
 
-export interface FareEstimateResponse {
+export interface FareEstimateItem {
+  vehicleTypeId: string;
+  vehicleTypeName: string;
+  iconKey: string;
   fareEstimate: number; // XOF whole number
+}
+
+export interface FareEstimateResponse {
+  estimates: FareEstimateItem[];
 }
 
 // ─── Phase 2: Ride creation ───────────────────────────────────────────────────
@@ -330,6 +349,7 @@ export interface CreateRideV2Request {
   destination: Location;
   distanceM: number;
   durationS: number;
+  vehicleTypeId?: string; // optional — backend defaults to Moto-taxi if omitted
 }
 
 export interface CreateRideV2Response {
