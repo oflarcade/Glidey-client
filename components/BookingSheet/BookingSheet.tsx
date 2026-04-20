@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -19,9 +19,12 @@ import type { ScooterTypeOption } from '@/components/ScooterCarousel/ScooterCaro
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PEEK_HEIGHT = 300;
-const FULL_HEIGHT = 560;
+const MINI_HEIGHT = 130;  // compact summary + CTA
+const PEEK_HEIGHT = 330;  // vehicle carousel visible
+const FULL_HEIGHT = 580;  // full form
 const SPRING = { damping: 14, stiffness: 280, mass: 0.8 };
+
+type SnapLevel = 'mini' | 'peek' | 'full';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -41,10 +44,16 @@ function formatXOF(amount: number): string {
   );
 }
 
+function truncate(str: string | undefined | null, max: number): string {
+  if (!str) return '';
+  return str.length > max ? str.slice(0, max - 1) + '…' : str;
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface BookingSheetProps {
   visible: boolean;
+  pickup: Location | null;
   destination: Location | null;
   distanceM: number;
   durationS: number;
@@ -59,12 +68,14 @@ export interface BookingSheetProps {
   onBookRide: () => void;
   onCancel: () => void;
   onDismiss: () => void;
+  onDismissToSearch: () => void;
 }
 
 // ─── BookingSheet ─────────────────────────────────────────────────────────────
 
 export const BookingSheet = memo(function BookingSheet({
   visible,
+  pickup,
   destination,
   distanceM,
   fareEstimates,
@@ -77,21 +88,34 @@ export const BookingSheet = memo(function BookingSheet({
   rideId,
   onBookRide,
   onCancel,
-  onDismiss,
+  onDismissToSearch,
 }: BookingSheetProps) {
   const insets = useSafeAreaInsets();
 
-  // translateY: FULL_HEIGHT = hidden, FULL_HEIGHT - PEEK_HEIGHT = peek, 0 = fully expanded
+  // JS-side snap state drives which content is shown
+  const [snap, setSnap] = useState<SnapLevel>('peek');
+
+  // translateY: FULL_HEIGHT = hidden, FULL_HEIGHT-MINI_HEIGHT = mini, etc.
   const translateY = useSharedValue(FULL_HEIGHT);
   const gestureStart = useSharedValue(0);
+  const snapLevel = useSharedValue(1); // 0=mini, 1=peek, 2=full
+
+  const snapToMini = useCallback(() => setSnap('mini'), []);
+  const snapToPeek = useCallback(() => setSnap('peek'), []);
+  const snapToFull = useCallback(() => setSnap('full'), []);
+  const triggerDismiss = useCallback(() => {
+    onDismissToSearch();
+  }, [onDismissToSearch]);
 
   useEffect(() => {
     if (visible) {
+      snapLevel.value = 1;
       translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
+      setSnap('peek');
     } else {
       translateY.value = withSpring(FULL_HEIGHT, SPRING);
     }
-  }, [visible, translateY]);
+  }, [visible, translateY, snapLevel]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -102,20 +126,47 @@ export const BookingSheet = memo(function BookingSheet({
       translateY.value = Math.max(0, Math.min(FULL_HEIGHT, next));
     })
     .onEnd((e) => {
-      const pastPeek = translateY.value > FULL_HEIGHT - PEEK_HEIGHT + 60;
-      const fastDown = e.velocityY > 800;
-      const midpoint = (FULL_HEIGHT - PEEK_HEIGHT) / 2;
+      const goingDown = e.velocityY > 150 || e.translationY > 60;
+      const goingUp = e.velocityY < -150 || e.translationY < -60;
+      const fastFlickDown = e.velocityY > 800;
 
-      if (fastDown || pastPeek) {
-        // drag down past peek or fast flick → dismiss
-        translateY.value = withSpring(FULL_HEIGHT, SPRING);
-        runOnJS(onDismiss)();
-      } else if (e.velocityY < -500 || translateY.value < midpoint) {
-        // fast upward swipe or past midpoint → expand
-        translateY.value = withSpring(0, SPRING);
+      if (goingDown) {
+        if (snapLevel.value === 2) {
+          // full → peek
+          snapLevel.value = 1;
+          translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
+          runOnJS(snapToPeek)();
+        } else if (snapLevel.value === 1) {
+          // peek → mini
+          snapLevel.value = 0;
+          translateY.value = withSpring(FULL_HEIGHT - MINI_HEIGHT, SPRING);
+          runOnJS(snapToMini)();
+        } else if (fastFlickDown) {
+          // mini + fast flick → dismiss
+          translateY.value = withSpring(FULL_HEIGHT, SPRING);
+          runOnJS(triggerDismiss)();
+        } else {
+          // mini + slow → stay mini
+          translateY.value = withSpring(FULL_HEIGHT - MINI_HEIGHT, SPRING);
+        }
+      } else if (goingUp) {
+        if (snapLevel.value === 0) {
+          // mini → peek
+          snapLevel.value = 1;
+          translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
+          runOnJS(snapToPeek)();
+        } else if (snapLevel.value === 1) {
+          // peek → full
+          snapLevel.value = 2;
+          translateY.value = withSpring(0, SPRING);
+          runOnJS(snapToFull)();
+        }
+        // already full → stay
       } else {
-        // snap back to peek
-        translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
+        // no clear direction → snap back to current level
+        if (snapLevel.value === 0) translateY.value = withSpring(FULL_HEIGHT - MINI_HEIGHT, SPRING);
+        else if (snapLevel.value === 1) translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
+        else translateY.value = withSpring(0, SPRING);
       }
     });
 
@@ -126,7 +177,6 @@ export const BookingSheet = memo(function BookingSheet({
   const isSearching = rideState === 'searching';
   const isMatched = rideState === 'matched';
 
-  // Matching logic — active only while searching (R7)
   const { activeAttemptIndex, completedAttempts, inFallback } = useMatching(
     isSearching ? rideId : null,
   );
@@ -153,6 +203,9 @@ export const BookingSheet = memo(function BookingSheet({
     !isSearching &&
     !isMatched;
 
+  const pickupLabel = truncate(pickup?.name ?? pickup?.address ?? 'Ma position', 20);
+  const destLabel = truncate(destination?.name ?? destination?.address ?? '—', 22);
+
   return (
     <>
       <GestureDetector gesture={panGesture}>
@@ -164,113 +217,135 @@ export const BookingSheet = memo(function BookingSheet({
           ]}
           pointerEvents={visible ? 'auto' : 'none'}
         >
-          {/* Drag handle indicator (R2) */}
+          {/* Handle + header row */}
           <View style={styles.handleZone}>
             <View style={styles.handle} />
-          </View>
-
-        {isSearching ? (
-          /* ── Searching state (R7) ── */
-          <View style={styles.searchingBody}>
-            {inFallback ? (
-              <>
-                <ActivityIndicator size="large" color={colors.text.secondary} />
-                <Text style={styles.searchingTitle}>Aucun conducteur disponible</Text>
-                <Text style={styles.searchingSubtitle}>
-                  Tous les conducteurs sont occupés. Réessayez dans quelques minutes.
-                </Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.searchingTitle}>Recherche d'un conducteur…</Text>
-                <RetryTimeline
-                  activeIndex={activeAttemptIndex}
-                  completedCount={completedAttempts}
-                />
-                <Text style={styles.searchingSubtitle}>
-                  {completedAttempts === 0
-                    ? 'Tentative 1 sur 3'
-                    : completedAttempts === 1
-                      ? 'Tentative 2 sur 3'
-                      : 'Dernière tentative'}
-                </Text>
-              </>
-            )}
-            <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={isBusy}>
-              <Text style={styles.cancelBtnText}>Annuler la recherche</Text>
+            <TouchableOpacity style={styles.xBtn} onPress={onDismissToSearch} hitSlop={12}>
+              <Text style={styles.xBtnText}>✕</Text>
             </TouchableOpacity>
           </View>
-        ) : isMatched ? null : (
-          /* ── Booking form ── */
-          <View style={styles.body}>
-            {/* Destination row (R3) */}
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>Destination</Text>
-              <View style={styles.rowValueCol}>
-                {destination?.name ? (
-                  <Text style={styles.rowValue} numberOfLines={1}>
-                    {destination.name}
+
+          {isSearching ? (
+            /* ── Searching state ── */
+            <View style={styles.searchingBody}>
+              {inFallback ? (
+                <>
+                  <ActivityIndicator size="large" color={colors.text.secondary} />
+                  <Text style={styles.searchingTitle}>Aucun conducteur disponible</Text>
+                  <Text style={styles.searchingSubtitle}>
+                    Tous les conducteurs sont occupés. Réessayez dans quelques minutes.
                   </Text>
-                ) : null}
-                {destination?.address ? (
-                  <Text style={styles.rowSubValue} numberOfLines={1}>
-                    {destination.address}
-                  </Text>
-                ) : null}
-              </View>
-            </View>
-
-            {/* Distance row */}
-            {distanceM > 0 && (
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>Distance</Text>
-                <Text style={styles.rowValue}>{(distanceM / 1000).toFixed(1)} km</Text>
-              </View>
-            )}
-
-            {/* Vehicle-type carousel (R4) */}
-            <View style={styles.carouselWrap}>
-              {isFareLoading ? (
-                <View style={styles.fareLoading}>
-                  <ActivityIndicator size="small" color={colors.primary.main} />
-                  <Text style={styles.fareLoadingText}>Calcul du tarif…</Text>
-                </View>
-              ) : fareError ? (
-                <Text style={styles.errorText}>{fareError}</Text>
-              ) : carouselOptions.length > 0 ? (
-                <ScooterCarousel
-                  options={carouselOptions}
-                  selectedId={selectedVehicleTypeId}
-                  onSelect={onSelectVehicleType}
-                  title="Type de véhicule"
-                />
-              ) : null}
-            </View>
-
-            {/* Payment row placeholder (R5) */}
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>Paiement</Text>
-              <Text style={styles.rowValue}>Espèces</Text>
-            </View>
-
-            {/* Book Now (R6) */}
-            <TouchableOpacity
-              style={[styles.bookBtn, !canBook && styles.bookBtnDisabled]}
-              onPress={onBookRide}
-              disabled={!canBook}
-            >
-              {isBusy ? (
-                <ActivityIndicator color="#fff" />
+                </>
               ) : (
-                <Text style={styles.bookBtnText}>Réserver maintenant</Text>
+                <>
+                  <Text style={styles.searchingTitle}>Recherche d'un conducteur…</Text>
+                  <RetryTimeline
+                    activeIndex={activeAttemptIndex}
+                    completedCount={completedAttempts}
+                  />
+                  <Text style={styles.searchingSubtitle}>
+                    {completedAttempts === 0
+                      ? 'Tentative 1 sur 3'
+                      : completedAttempts === 1
+                        ? 'Tentative 2 sur 3'
+                        : 'Dernière tentative'}
+                  </Text>
+                </>
               )}
-            </TouchableOpacity>
-          </View>
-        )}
+              <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={isBusy}>
+                <Text style={styles.cancelBtnText}>Annuler la recherche</Text>
+              </TouchableOpacity>
+            </View>
+          ) : isMatched ? null : snap === 'mini' ? (
+            /* ── Mini state: summary + CTA ── */
+            <View style={styles.miniBody}>
+              <View style={styles.miniSummary}>
+                <Text style={styles.miniFrom} numberOfLines={1}>
+                  {pickupLabel}
+                </Text>
+                <Text style={styles.miniArrow}>→</Text>
+                <Text style={styles.miniTo} numberOfLines={1}>
+                  {destLabel}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.bookBtn, !canBook && styles.bookBtnDisabled]}
+                onPress={onBookRide}
+                disabled={!canBook}
+              >
+                {isBusy ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.bookBtnText}>Réserver maintenant</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            /* ── Peek / Full: full booking form ── */
+            <View style={styles.body}>
+              {/* Destination row */}
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>Destination</Text>
+                <View style={styles.rowValueCol}>
+                  {destination?.name ? (
+                    <Text style={styles.rowValue} numberOfLines={1}>{destination.name}</Text>
+                  ) : null}
+                  {destination?.address ? (
+                    <Text style={styles.rowSubValue} numberOfLines={1}>{destination.address}</Text>
+                  ) : null}
+                </View>
+              </View>
+
+              {/* Distance row */}
+              {distanceM > 0 && (
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>Distance</Text>
+                  <Text style={styles.rowValue}>{(distanceM / 1000).toFixed(1)} km</Text>
+                </View>
+              )}
+
+              {/* Vehicle-type carousel */}
+              <View style={styles.carouselWrap}>
+                {isFareLoading ? (
+                  <View style={styles.fareLoading}>
+                    <ActivityIndicator size="small" color={colors.primary.main} />
+                    <Text style={styles.fareLoadingText}>Calcul du tarif…</Text>
+                  </View>
+                ) : fareError ? (
+                  <Text style={styles.errorText}>{fareError}</Text>
+                ) : carouselOptions.length > 0 ? (
+                  <ScooterCarousel
+                    options={carouselOptions}
+                    selectedId={selectedVehicleTypeId}
+                    onSelect={onSelectVehicleType}
+                    title="Type de véhicule"
+                  />
+                ) : null}
+              </View>
+
+              {/* Payment row placeholder */}
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>Paiement</Text>
+                <Text style={styles.rowValue}>Espèces</Text>
+              </View>
+
+              {/* Book Now */}
+              <TouchableOpacity
+                style={[styles.bookBtn, !canBook && styles.bookBtnDisabled]}
+                onPress={onBookRide}
+                disabled={!canBook}
+              >
+                {isBusy ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.bookBtnText}>Réserver maintenant</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
       </GestureDetector>
 
-      {/* Driver reveal slides up from bottom on match */}
       <DriverReveal visible={isMatched} />
     </>
   );
@@ -294,19 +369,67 @@ const styles = StyleSheet.create({
     elevation: 16,
   },
   handleZone: {
-    paddingVertical: 14,
+    paddingTop: 14,
+    paddingBottom: 8,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
+    flexDirection: 'row',
   },
   handle: {
-    width: 44,
+    flex: 1,
     height: 5,
+    width: 44,
     borderRadius: 3,
     backgroundColor: colors.border.light,
+    alignSelf: 'center',
+    marginLeft: 28, // balance the X button width
   },
+  xBtn: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  xBtnText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+
+  // ── Mini state ──
+  miniBody: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    gap: spacing.sm,
+  },
+  miniSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+  miniFrom: {
+    ...typography.bodySmall,
+    color: colors.text.secondary,
+    flex: 1,
+  },
+  miniArrow: {
+    ...typography.body,
+    color: colors.text.tertiary,
+    marginHorizontal: spacing.xs,
+  },
+  miniTo: {
+    ...typography.body,
+    color: colors.text.primary,
+    fontWeight: '600',
+    flex: 1.5,
+  },
+
+  // ── Peek / Full body ──
   body: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
   },
   row: {
     flexDirection: 'row',
@@ -364,7 +487,7 @@ const styles = StyleSheet.create({
   bookBtnDisabled: { opacity: 0.45 },
   bookBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 
-  // Searching state
+  // ── Searching ──
   searchingBody: {
     flex: 1,
     alignItems: 'center',
