@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Pressable, Keyboard, Platform, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -8,7 +8,6 @@ import Animated, {
   Easing,
   interpolate,
   runOnJS,
-  useAnimatedKeyboard,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +25,7 @@ import type { ScooterTypeOption } from '@/components/ScooterCarousel/ScooterCaro
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MINI_HEIGHT = 100;
-const PEEK_HEIGHT = 330;
+const PEEK_HEIGHT = 460;
 const FULL_HEIGHT = 580;
 const SPRING = { damping: 14, stiffness: 280, mass: 0.8 };
 const MODE_TRANSITION_DURATION = 260;
@@ -268,12 +267,12 @@ export const BookingSheet = memo(function BookingSheet({
     }
   }, [visible, translateY, snapLevel]);
 
-  // Auto-snap to full when booking mode activates so CTA is always visible
+  // Auto-snap to peek when booking mode activates — PEEK_HEIGHT now fits all content + CTA
   useEffect(() => {
     if (sheetMode === 'booking' || sheetMode === 'matching') {
-      snapLevel.value = 2;
-      translateY.value = withSpring(0, SPRING);
-      setSnap('full');
+      snapLevel.value = 1;
+      translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
+      setSnap('peek');
     } else if (sheetMode === 'search') {
       snapLevel.value = 1;
       translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
@@ -321,10 +320,29 @@ export const BookingSheet = memo(function BookingSheet({
       }
     });
 
-  const keyboard = useAnimatedKeyboard();
+  const keyboardOffset = useSharedValue(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      keyboardOffset.value = withTiming(e.endCoordinates.height, {
+        duration: Platform.OS === 'ios' ? e.duration : 250,
+        easing: Easing.out(Easing.ease),
+      });
+    });
+    const hideSub = Keyboard.addListener(hideEvent, (e) => {
+      keyboardOffset.value = withTiming(0, {
+        duration: Platform.OS === 'ios' ? e.duration : 250,
+        easing: Easing.in(Easing.ease),
+      });
+    });
+    return () => { showSub.remove(); hideSub.remove(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value - keyboard.height.value }],
+    transform: [{ translateY: translateY.value - keyboardOffset.value }],
   }));
 
   const isSearching = rideState === 'searching';
