@@ -20,7 +20,7 @@ import type { ScooterTypeOption } from '@/components/ScooterCarousel/ScooterCaro
 
 const PEEK_HEIGHT = 300;
 const FULL_HEIGHT = 560;
-const SPRING = { damping: 22, stiffness: 220 };
+const SPRING = { damping: 14, stiffness: 280, mass: 0.8 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

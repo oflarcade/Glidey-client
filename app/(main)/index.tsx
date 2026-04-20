@@ -262,13 +262,11 @@ export default function ClientMainScreen() {
    */
   const handleDestinationSelect = useCallback(
     async (destination: Location) => {
-      // Haptic feedback for selection
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // Update state
       setSelectedDestination(destination);
+      closeLocationModal();
 
-      // Zoom map on destination only (fixed zoom level)
       if (cameraRef.current) {
         try {
           await animateToLocation(
@@ -282,7 +280,7 @@ export default function ClientMainScreen() {
         }
       }
     },
-    [location]
+    [closeLocationModal]
   );
 
   /**
@@ -392,7 +390,7 @@ export default function ClientMainScreen() {
       />
 
       {/* Destination Tip - Shows selected destination */}
-      {selectedDestination && (
+      {selectedDestination && !showBookingSheet && (
         <DestinationTip
           destination={selectedDestination}
           topOffset={destinationTipOffset}
