@@ -36,3 +36,20 @@ export type {
   UseRideHistoryParams,
   UseRideHistoryResult,
 } from './useRideHistory';
+
+export { useBooking } from './useBooking';
+export type { UseBookingParams, UseBookingResult } from './useBooking';
+
+export { useMatching } from './useMatching';
+export type { UseMatchingResult } from './useMatching';
+
+export { usePickup } from './usePickup';
+export type { UsePickupResult } from './usePickup';
+
+export { useRideTracking } from './useRideTracking';
+export type { UseRideTrackingResult } from './useRideTracking';
+
+export { useVehicleTypes, vehicleTypesKeys } from './useVehicleTypes';
+
+export { useCreateRide } from './useCreateRide';
+export type { UseCreateRideParams, UseCreateRideResult } from './useCreateRide';

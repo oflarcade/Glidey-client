@@ -4,6 +4,8 @@
     "strict": true,
     "paths": {
       "@/*": ["./*"],
+      "@rentascooter/api": ["./packages/api/src"],
+      "@rentascooter/api/*": ["./packages/api/src/*"],
       "@rentascooter/shared": ["./packages/shared/src"],
       "@rentascooter/shared/*": ["./packages/shared/src/*"],
       "@rentascooter/auth": ["./packages/auth/src"],

@@ -61,6 +61,18 @@ interface DriverMarkersProps {
   visible?: boolean;
 }
 
+function hasValidCoords(driver: NearbyDriver): boolean {
+  const ok =
+    typeof driver.latitude === 'number' &&
+    typeof driver.longitude === 'number' &&
+    isFinite(driver.latitude) &&
+    isFinite(driver.longitude);
+  if (!ok && __DEV__) {
+    console.warn(`[DriverMarkers] driver ${driver.id} missing valid lat/lng — skipped`);
+  }
+  return ok;
+}
+
 /**
  * Generate GeoJSON FeatureCollection from drivers array
  */
@@ -68,23 +80,19 @@ function driversToGeoJSON(drivers: NearbyDriver[]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: drivers
-      .filter((driver) => driver.location)
+      .filter(hasValidCoords)
       .map((driver) => ({
         type: 'Feature',
         id: driver.id,
         geometry: {
           type: 'Point',
-          coordinates: [
-            driver.location.longitude,
-            driver.location.latitude,
-          ],
+          coordinates: [driver.longitude, driver.latitude],
         },
         properties: {
           id: driver.id,
           rating: driver.rating ?? 0,
           vehicleType: driver.vehicleType ?? 'scooter',
-          vehicleColor: driver.vehicleColor ?? 'unknown',
-          distance: driver.distanceMeters,
+          distance: driver.distanceM,
         },
       })),
   };
@@ -147,9 +155,9 @@ function DriverMarkersComponent({
   // Determine rendering mode based on driver count
   const useClusterMode = drivers.length > CLUSTER_THRESHOLD;
 
-  // Filter drivers with valid locations (for MarkerView mode)
+  // Filter drivers with valid lat/lng (for MarkerView mode)
   const validDrivers = useMemo(
-    () => drivers.filter((driver) => driver.location),
+    () => drivers.filter(hasValidCoords),
     [drivers]
   );
 
@@ -242,7 +250,7 @@ function DriverMarkersComponent({
         <Mapbox.MarkerView
           key={driver.id}
           id={`driver-marker-${driver.id}`}
-          coordinate={[driver.location.longitude, driver.location.latitude]}
+          coordinate={[driver.longitude, driver.latitude]}
           anchor={{ x: 0.5, y: 1 }} // Anchor at bottom center of pin
           allowOverlap={true}
         >

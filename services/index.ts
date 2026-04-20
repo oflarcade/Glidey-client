@@ -5,26 +5,26 @@
  */
 
 export {
-  getAvailableDrivers,
+  getNearby,
+  applyCoordFallback,
   calculateDistance,
-  type GetAvailableDriversRequest,
   type NearbyDriver,
 } from './driversService';
 
 export {
-  getRouteDirections,
-  type GetRouteDirectionsRequest,
+  getRoute,
   type RouteDirectionsResponse,
-  type RouteGeometry,
+  type RouteOriginDestination,
 } from './routeDirectionsService';
 
 export {
-  searchLocations,
-  suggestLocation,
-  retrieveLocation,
-  getLocationHistory,
-  saveLocationToHistory,
-  isValidLocationForHistory,
+  autocomplete,
+  placeDetail,
+  getHistory,
+  saveHistory,
+  isDemoModeError,
+  type ResolvedLocation,
+  type LocationHistoryEntry,
 } from './addressSearchService';
 
 export {
@@ -32,3 +32,26 @@ export {
   type GetRideHistoryRequest,
   type GetRideHistoryResponse,
 } from './ridesService';
+
+export {
+  estimateFare,
+  createRide,
+  cancelRide,
+} from './bookingService';
+
+export {
+  subscribeToMatching,
+  getMatchingStatus,
+  type MatchingEvent,
+  type MatchingCleanup,
+} from './matchingService';
+
+export {
+  reverseGeocode,
+  confirmPickup,
+} from './pickupService';
+
+export {
+  subscribeToTracking,
+  type TrackingCleanup,
+} from './trackingService';

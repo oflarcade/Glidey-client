@@ -19,11 +19,7 @@ export function getRouteLineCoordinates(
 ): [number, number][] {
   if (!location || !destination) return [];
 
-  // Prefer full geometry from backend (Mapbox Directions API returns [lng, lat])
-  const geomCoords = routeDirections?.geometry?.coordinates;
-  if (geomCoords && geomCoords.length > 0) return geomCoords;
-
-  // Fallback: decode encoded polyline from backend (output [lng, lat])
+  // Decode encoded polyline from backend (output [lng, lat])
   if (routeDirections?.polyline && typeof routeDirections.polyline === 'string') {
     const decoded = decodePolylineToLngLat(routeDirections.polyline);
     if (decoded.length > 0) return decoded;

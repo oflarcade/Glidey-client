@@ -168,6 +168,10 @@ export type { UserPositionPinProps, UserPositionPinSize } from './UserPositionPi
 export { DestinationPin } from './DestinationPin';
 export type { DestinationPinProps } from './DestinationPin';
 
+// Pickup Pin Sheet (draggable pin surface for pickup confirmation)
+export { PickupPinSheet } from './PickupPinSheet';
+export type { PickupPinSheetProps, PickupGeoPoint } from './PickupPinSheet';
+
 // Notification Item (notification list row)
 export { NotificationItem } from './NotificationItem';
 export type {
@@ -188,3 +192,13 @@ export type { ProfileStatsCardProps, ProfileStat } from './ProfileStatsCard';
 
 export { ProfileFieldRow } from './ProfileFieldRow';
 export type { ProfileFieldRowProps, VerificationStatus } from './ProfileFieldRow';
+
+// Phase 2 — Booking Flow Components
+export { RetryTimeline } from './RetryTimeline';
+export type { RetryTimelineProps } from './RetryTimeline';
+
+export { DriverCard } from './DriverCard';
+export type { DriverCardProps } from './DriverCard';
+
+export { ArrivalBanner, ProgressBar } from './ArrivalBanner';
+export type { ArrivalBannerProps, ProgressBarProps } from './ArrivalBanner';

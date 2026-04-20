@@ -1,42 +1,33 @@
 import { useState, useEffect } from 'react';
-import type { Location } from '@rentascooter/shared';
-import { searchLocations } from '@/services';
-
-const SEARCH_QUERY_MIN_LENGTH = 3;
+import type { Suggestion } from '@rentascooter/shared';
+import { autocomplete } from '@/services/addressSearchService';
 
 export interface UseAddressSearchParams {
-  /** Search query (caller should debounce, e.g. SearchInput 300ms) */
   query: string;
-  /** Optional user location for proximity bias */
-  proximity?: { latitude: number; longitude: number } | null;
-  /** Max results 1–10, default 5 */
-  limit?: number;
 }
 
 export interface UseAddressSearchResult {
-  results: Location[];
+  suggestions: Suggestion[];
   isLoading: boolean;
   error: string | null;
 }
 
 /**
- * Hook to search locations via backend callable.
- * Skips request when query has fewer than 3 characters.
- * Cancels in-flight request on unmount or when query/proximity changes.
+ * Hook to search locations via REST backend autocomplete.
+ * Skips request when query has fewer than 2 characters.
+ * Implements cavekit-location-search.md R1, R6.
  */
 export function useAddressSearch({
   query,
-  proximity = null,
-  limit = 5,
 }: UseAddressSearchParams): UseAddressSearchResult {
-  const [results, setResults] = useState<Location[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed.length < SEARCH_QUERY_MIN_LENGTH) {
-      setResults([]);
+    if (trimmed.length < 2) {
+      setSuggestions([]);
       setError(null);
       setIsLoading(false);
       return;
@@ -45,40 +36,26 @@ export function useAddressSearch({
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    setResults([]);
+    setSuggestions([]);
 
-    searchLocations({
-      query: trimmed,
-      proximity: proximity ?? undefined,
-      limit,
-    })
+    autocomplete(trimmed)
       .then((data) => {
-        if (!cancelled) {
-          setResults(data);
-        }
+        if (!cancelled) setSuggestions(data);
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         if (!cancelled) {
-          setResults([]);
-          setError(
-            err instanceof Error ? err.message : 'Failed to search locations'
-          );
+          setSuggestions([]);
+          setError((err as { message?: string })?.message ?? 'Failed to search locations');
         }
       })
       .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+        if (!cancelled) setIsLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [query, proximity?.latitude, proximity?.longitude, limit]);
+  }, [query]);
 
-  return {
-    results,
-    isLoading,
-    error,
-  };
+  return { suggestions, isLoading, error };
 }

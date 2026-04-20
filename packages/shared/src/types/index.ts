@@ -113,11 +113,14 @@ export interface RideFare {
   currency: 'XOF'; // West African CFA franc
 }
 
-export interface RouteInfo {
-  distanceMeters: number;
-  durationSeconds: number;
-  polyline: string; // Encoded polyline from Mapbox
+export interface RouteDirectionsResponse {
+  distanceM: number;
+  durationS: number;
+  polyline: string;
 }
+
+// Backwards-compat alias — T-061 migrates all consumers to RouteDirectionsResponse
+export type RouteInfo = RouteDirectionsResponse;
 
 export interface RideTimestamps {
   requestedAt: Date;
@@ -152,23 +155,15 @@ export interface SearchLocationsResponse {
   results: Location[];
 }
 
-// Mapbox Search Box API (autocomplete) types
+// Google Places autocomplete types (replaces Mapbox Search Box)
 export interface Suggestion {
-  mapboxId: string;
+  placeId: string;
   name: string;
-  fullAddress: string;
-  address?: string;
-  placeFormatted?: string;
-  featureType?: string;
-  context?: string;
-  maki?: string;
-  poiCategory?: string;
-  distance?: number;
+  formattedAddress: string;
 }
 
 export interface SuggestLocationRequest {
   query: string;
-  sessionToken: string;
   proximity?: GeoPoint;
   limit?: number;
 }
@@ -178,8 +173,7 @@ export interface SuggestLocationResponse {
 }
 
 export interface RetrieveLocationRequest {
-  mapboxId: string;
-  sessionToken: string;
+  placeId: string;
 }
 
 export interface RetrieveLocationResponse {
@@ -214,17 +208,19 @@ export interface RateRideRequest {
 // Nearby Drivers Types (optimized for map display)
 export interface NearbyDriver {
   id: string;
-  location: GeoPoint;
+  name: string;
   vehicleType: 'scooter';
-  vehicleColor?: string;
+  vehiclePlate: string;
   rating: number;
-  distanceMeters: number;
+  distanceM: number;
+  latitude: number;
+  longitude: number;
 }
 
 export interface GetNearbyDriversRequest {
-  location: GeoPoint;
-  radiusKm?: number;
-  limit?: number;
+  latitude: number;
+  longitude: number;
+  radiusM?: number;
 }
 
 export interface NearbyDriversResponse {
@@ -304,3 +300,108 @@ export type {
 } from './location';
 
 export { DAKAR_CENTER, LOCATION_CONFIG } from './location';
+
+// ─── Phase 2: Ride FSM ────────────────────────────────────────────────────────
+
+export type RideState =
+  | 'idle'
+  | 'searching'
+  | 'matched'
+  | 'pickup_en_route'
+  | 'completed'
+  | 'cancelled'
+  | 'failed';
+
+// ─── Phase 2: Vehicle catalog ─────────────────────────────────────────────────
+
+export interface VehicleType {
+  id: string;
+  name: string;
+  iconKey: string;
+}
+
+export interface VehicleTypesResponse {
+  vehicleTypes: VehicleType[];
+}
+
+// ─── Phase 2: Fare estimation ─────────────────────────────────────────────────
+
+export interface FareEstimateRequest {
+  distanceM: number;
+  durationS: number;
+}
+
+export interface FareEstimateItem {
+  vehicleTypeId: string;
+  vehicleTypeName: string;
+  iconKey: string;
+  fareEstimate: number; // XOF whole number
+}
+
+export interface FareEstimateResponse {
+  estimates: FareEstimateItem[];
+}
+
+// ─── Phase 2: Ride creation ───────────────────────────────────────────────────
+
+export interface CreateRideV2Request {
+  pickup: GeoPoint;
+  destination: Location;
+  distanceM: number;
+  durationS: number;
+  vehicleTypeId?: string; // optional — backend defaults to Moto-taxi if omitted
+}
+
+export interface CreateRideV2Response {
+  id: string;
+  state: RideState;
+}
+
+// ─── Phase 2: Matched driver ──────────────────────────────────────────────────
+
+export interface MatchedDriver {
+  id: string;
+  name: string;
+  vehiclePlate: string;
+  vehicleType: string; // free-text e.g. "scooter"
+  rating: number;
+  completedRides: number;
+  profilePhoto?: string; // URL; undefined → deterministic fallback avatar
+  location: GeoPoint;
+}
+
+// ─── Phase 2: Cancel ride ─────────────────────────────────────────────────────
+
+export interface CancelRideRequest {
+  rideId: string;
+}
+
+export interface CancelRideResponse {
+  success: boolean;
+}
+
+// ─── Phase 2: Confirm pickup (data protection — only after explicit user action)
+
+export interface ConfirmPickupRequest {
+  rideId: string;
+  pickup: GeoPoint;
+}
+
+export interface ConfirmPickupResponse {
+  state: RideState; // expected: 'pickup_en_route'
+}
+
+// ─── Phase 2: Realtime event payloads (T-092) ─────────────────────────────────
+// All coordinates use GeoPoint — no parallel lat/lng shape.
+
+export interface RideMatchingPayload {
+  rideId: string;
+  driver: MatchedDriver;
+}
+
+export interface TrackingPositionUpdate {
+  rideId: string;
+  driverLocation: GeoPoint;
+  etaSeconds: number;
+  timestamp: number; // Unix ms
+}

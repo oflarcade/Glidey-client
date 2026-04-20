@@ -34,6 +34,18 @@ export default function MainLayout() {
           name="settings"
           options={{ presentation: 'modal' }}
         />
+        <Stack.Screen
+          name="booking"
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="pickup"
+          options={{ presentation: 'fullScreenModal' }}
+        />
+        <Stack.Screen
+          name="tracking"
+          options={{ presentation: 'fullScreenModal' }}
+        />
       </Stack>
 
       {/* Sidebar rendered at layout level for cross-screen access */}

@@ -14,7 +14,7 @@
 import { useRef, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { GeoPoint, UserLocation, NearbyDriver } from '@rentascooter/shared';
-import { getAvailableDrivers, calculateDistance } from '../services/driversService';
+import { getNearby, applyCoordFallback, calculateDistance } from '../services/driversService';
 
 // Re-export for consumers
 export type { NearbyDriver };
@@ -153,15 +153,17 @@ export function useNearbyDrivers(
       return [];
     }
 
-    const drivers = await getAvailableDrivers({
-      location: currentGeoPoint,
-      radiusKm,
+    const raw = await getNearby({
+      lat: currentGeoPoint.latitude,
+      lng: currentGeoPoint.longitude,
+      radiusM: radiusKm * 1000,
     });
 
     // Update last fetched location on success
     lastFetchedLocation.current = currentGeoPoint;
 
-    return drivers;
+    // T-044/T-045: apply jitter fallback for drivers missing real coordinates
+    return raw.map((d) => applyCoordFallback(d, currentGeoPoint));
   }, [currentGeoPoint, radiusKm]);
 
   /**
@@ -200,7 +202,7 @@ export function useNearbyDrivers(
 
   /**
    * Calculate distance to nearest driver
-   * Uses pre-calculated distanceMeters from backend when available
+   * Uses pre-calculated distanceM from backend when available
    */
   const nearestDriverDistance = useMemo((): number | null => {
     if (drivers.length === 0) return null;
@@ -209,9 +211,9 @@ export function useNearbyDrivers(
 
     for (const driver of drivers) {
       // Use pre-calculated distance from backend if available
-      const distance = driver.distanceMeters ?? (
-        currentGeoPoint && driver.location
-          ? calculateDistance(currentGeoPoint, driver.location)
+      const distance = driver.distanceM ?? (
+        currentGeoPoint && typeof driver.latitude === 'number' && typeof driver.longitude === 'number'
+          ? calculateDistance(currentGeoPoint, { latitude: driver.latitude, longitude: driver.longitude })
           : Infinity
       );
       
