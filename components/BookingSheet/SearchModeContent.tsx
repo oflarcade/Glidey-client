@@ -6,7 +6,7 @@ import { SearchInput, type SearchInputRef } from '../LocationModal/SearchInput';
 import { LocationHistoryList } from '../LocationModal/LocationHistoryList';
 import { LocationSearchList } from '../LocationModal/LocationSearchList';
 import { useAutocompleteLocation, useLocationHistory } from '@/hooks';
-import { placeDetail } from '@/services/addressSearchService';
+import { placeDetail, saveHistory } from '@/services/addressSearchService';
 
 export interface SearchModeContentProps {
   userName: string;
@@ -78,6 +78,7 @@ export const SearchModeContent = memo(function SearchModeContent({
       setRetrieveError(null);
       try {
         const resolved = await placeDetail(suggestion.placeId);
+        try { await saveHistory(resolved); } catch { /* non-blocking */ }
         onConfirmDestination(resolved);
       } catch (err) {
         setRetrieveError((err as { message?: string })?.message ?? 'Failed to resolve location');
@@ -87,7 +88,8 @@ export const SearchModeContent = memo(function SearchModeContent({
   );
 
   const handleSelectHistory = useCallback(
-    (loc: Location) => {
+    async (loc: Location) => {
+      try { await saveHistory({ address: loc.address, name: loc.name ?? loc.address, latitude: loc.latitude, longitude: loc.longitude }); } catch { /* non-blocking */ }
       onConfirmDestination(loc);
     },
     [onConfirmDestination]

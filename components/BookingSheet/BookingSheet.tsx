@@ -12,18 +12,19 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
-import { RetryTimeline } from '@rentascooter/ui';
+import { RetryTimeline, Icon } from '@rentascooter/ui';
 import { ScooterCarousel } from '@/components/ScooterCarousel/ScooterCarousel';
 import { DriverReveal } from '@/components/DriverReveal/DriverReveal';
 import { useMatching } from '@/hooks/useMatching';
 import { useUIStore, selectSheetMode } from '@rentascooter/shared';
 import type { FareEstimateItem, Location } from '@rentascooter/shared';
+import { SearchModeContent } from './SearchModeContent';
 import type { IconName } from '@rentascooter/ui';
 import type { ScooterTypeOption } from '@/components/ScooterCarousel/ScooterCarousel';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MINI_HEIGHT = 155;
+const MINI_HEIGHT = 100;
 const PEEK_HEIGHT = 330;
 const FULL_HEIGHT = 580;
 const SPRING = { damping: 14, stiffness: 280, mass: 0.8 };
@@ -160,6 +161,8 @@ export interface BookingSheetProps {
   onCancel: () => void;
   onDismiss: () => void;
   onDismissToSearch: () => void;
+  userName: string;
+  onConfirmDestination: (loc: Location) => void;
 }
 
 // ─── BookingSheet ─────────────────────────────────────────────────────────────
@@ -180,6 +183,8 @@ export const BookingSheet = memo(function BookingSheet({
   onBookRide,
   onCancel,
   onDismissToSearch,
+  userName,
+  onConfirmDestination,
 }: BookingSheetProps) {
   const insets = useSafeAreaInsets();
   const sheetMode = useUIStore(selectSheetMode);
@@ -358,7 +363,10 @@ export const BookingSheet = memo(function BookingSheet({
                 style={[StyleSheet.absoluteFill, searchSurfaceStyle]}
                 pointerEvents={sheetMode === 'search' ? 'auto' : 'none'}
               >
-                {/* SearchModeContent wired in T-126 */}
+                <SearchModeContent
+                  userName={userName}
+                  onConfirmDestination={onConfirmDestination}
+                />
               </Animated.View>
             )}
 
@@ -399,23 +407,15 @@ export const BookingSheet = memo(function BookingSheet({
                     </TouchableOpacity>
                   </View>
                 ) : isMatched ? null : snap === 'mini' ? (
+                  /* ── Mini: condensed destination row (T-127 adds Pressable) ── */
                   <View style={styles.miniBody}>
-                    <View style={styles.miniSummary}>
-                      <Text style={styles.miniFrom} numberOfLines={1}>{pickupLabel}</Text>
-                      <Text style={styles.miniArrow}>→</Text>
-                      <Text style={styles.miniTo} numberOfLines={1}>{destLabel}</Text>
+                    <Icon name="map-pin" size={18} color={colors.primary.main} />
+                    <View style={styles.miniDestCol}>
+                      <Text style={styles.miniDestName} numberOfLines={1}>
+                        {destination?.name ?? destination?.address ?? 'Where to?'}
+                      </Text>
                     </View>
-                    <TouchableOpacity
-                      style={[styles.bookBtn, !canBook && styles.bookBtnDisabled]}
-                      onPress={onBookRide}
-                      disabled={!canBook}
-                    >
-                      {isBusy ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={styles.bookBtnText}>Réserver maintenant</Text>
-                      )}
-                    </TouchableOpacity>
+                    <Icon name="chevron-right" size={18} color={colors.text.tertiary} />
                   </View>
                 ) : (
                   <BookingModeContent
@@ -492,33 +492,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // ── Mini state ──
+  // ── Mini state: condensed destination row ──
   miniBody: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
-    gap: spacing.sm,
-  },
-  miniSummary: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
   },
-  miniFrom: {
-    ...typography.bodySmall,
-    color: colors.text.secondary,
+  miniDestCol: {
     flex: 1,
   },
-  miniArrow: {
-    ...typography.body,
-    color: colors.text.tertiary,
-    marginHorizontal: spacing.xs,
-  },
-  miniTo: {
+  miniDestName: {
     ...typography.body,
     color: colors.text.primary,
     fontWeight: '600',
-    flex: 1.5,
   },
 
   // ── Peek / Full body ──

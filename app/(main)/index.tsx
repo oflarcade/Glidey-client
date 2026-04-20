@@ -24,7 +24,7 @@ import { useRouteDirections } from '@/hooks/useRouteDirections';
 import { useBooking } from '@/hooks/useBooking';
 import { getRouteLineCoordinates } from '@/utils/routeLineCoordinates';
 import { DriverMarkers } from '@/components/DriverMarkers';
-import { LocationModal, DestinationTip } from '@/components/LocationModal';
+import { DestinationTip } from '@/components/LocationModal';
 import { BookingSheet } from '@/components/BookingSheet';
 import { animateToLocation } from '@/utils/mapAnimations';
 import { getMockDriversNear } from '@/utils/mockDrivers';
@@ -238,14 +238,6 @@ export default function ClientMainScreen() {
   }, [setSheetMode]);
 
   /**
-   * Handle location modal close
-   */
-  const handleCloseLocationModal = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSheetMode('idle');
-  }, [setSheetMode]);
-
-  /**
    * Handle clearing destination
    */
   const handleClearDestination = useCallback(async () => {
@@ -325,16 +317,6 @@ export default function ClientMainScreen() {
   const userPositionButtonBottom = sheetMode === 'search'
     ? insets.bottom + spacing.xl + 200
     : insets.bottom + spacing.xl;
-
-  // Convert user location to Location type for modal
-  const userLocationForModal: Location | undefined = location
-    ? {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        address: 'Current Location',
-        name: userName,
-      }
-    : undefined;
 
   return (
     <View style={styles.container}>
@@ -423,18 +405,6 @@ export default function ClientMainScreen() {
         testID="locate-fab"
       />
 
-      {/* Location Selection Modal (BottomSheet). Rendered before LocationServicePrompt so that when both could be visible, the prompt appears on top. */}
-      <LocationModal
-        isOpen={sheetMode === 'search'}
-        onClose={handleCloseLocationModal}
-        selectedDestination={selectedDestination}
-        onDestinationSelect={handleDestinationSelect}
-        onClearDestination={handleClearDestination}
-        userLocation={userLocationForModal}
-        userName={userName}
-        testID="location-modal"
-      />
-
       {/* In-map booking sheet — auto-presents on destination confirmation (R1) */}
       <BookingSheet
         visible={showBookingSheet}
@@ -454,6 +424,8 @@ export default function ClientMainScreen() {
         onCancel={handleBookingCancel}
         onDismiss={handleClearDestination}
         onDismissToSearch={handleBookingDismissToSearch}
+        userName={userName}
+        onConfirmDestination={handleDestinationSelect}
       />
 
       {/* Location Services Prompt Modal (centered dialog) */}
