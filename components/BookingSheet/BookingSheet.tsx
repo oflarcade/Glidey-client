@@ -4,6 +4,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -57,6 +58,7 @@ export interface BookingSheetProps {
   rideId: string | null;
   onBookRide: () => void;
   onCancel: () => void;
+  onDismiss: () => void;
 }
 
 // ─── BookingSheet ─────────────────────────────────────────────────────────────
@@ -75,6 +77,7 @@ export const BookingSheet = memo(function BookingSheet({
   rideId,
   onBookRide,
   onCancel,
+  onDismiss,
 }: BookingSheetProps) {
   const insets = useSafeAreaInsets();
 
@@ -99,8 +102,15 @@ export const BookingSheet = memo(function BookingSheet({
       translateY.value = Math.max(0, Math.min(FULL_HEIGHT, next));
     })
     .onEnd((e) => {
+      const pastPeek = translateY.value > FULL_HEIGHT - PEEK_HEIGHT + 60;
+      const fastDown = e.velocityY > 800;
       const midpoint = (FULL_HEIGHT - PEEK_HEIGHT) / 2;
-      if (e.velocityY < -500 || translateY.value < midpoint) {
+
+      if (fastDown || pastPeek) {
+        // drag down past peek or fast flick → dismiss
+        translateY.value = withSpring(FULL_HEIGHT, SPRING);
+        runOnJS(onDismiss)();
+      } else if (e.velocityY < -500 || translateY.value < midpoint) {
         // fast upward swipe or past midpoint → expand
         translateY.value = withSpring(0, SPRING);
       } else {
