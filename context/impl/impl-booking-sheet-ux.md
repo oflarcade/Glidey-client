@@ -6,6 +6,25 @@ last_edited: "2026-04-20"
 
 Build site: context/plans/build-site.md
 
+## Unified Booking Modal (build-site-unified-booking-modal.md)
+
+| Task | Status | Notes |
+|------|--------|-------|
+| T-120 | DONE | SheetMode='idle\|search\|booking\|matching'; replaces isLocationModalOpen+activeBottomSheet; initial='search' |
+| T-121 | DONE | SearchModeContent.tsx created; placeDetail internal; onConfirmDestination callback; no sessionToken |
+| T-122 | DONE | BookingModeContent extracted in BookingSheet.tsx; sheetMode read; search surface placeholder |
+| T-123 | DONE | modeProgress shared value; 260ms cubic crossfade; transitionComplete gates fare spinner |
+| T-124 | DONE | app/(main)/index.tsx: all callers migrated to setSheetMode; showBookingSheet=sheetMode!=='idle' |
+| T-125 | DONE | MINI_HEIGHT→100; mini body = map-pin + dest name + chevron-right; old styles removed |
+| T-126 | DONE | SearchModeContent mounted on search surface; userName+onConfirmDestination props wired |
+| T-127 | DONE | Mini + peek/full destination rows wrapped in Pressable → setSheetMode('search') |
+| T-128 | DONE | LocationModal removed from index.tsx; BookingSheet is sole sheet; fixes double-modal bug |
+| T-129 | DONE | Auto-focus on mode→search transition (rAF + prevRef); KeyboardAvoidingView in SearchModeContent |
+| T-130 | DONE | Nearest-snap via velocity projection; fast-flick-down from mini dismisses; mode-aware triggerDismiss |
+| T-131 | DONE | rideState→matching synced via useEffect; handleBookingCancel resets to search |
+| T-132 | DONE | No stale API refs; all owned files compile clean |
+| T-133 | DONE | Zero TS errors in BookingSheet, SearchModeContent, index.tsx, uiStore |
+
 | Task | Status | Notes |
 |------|--------|-------|
 | T-057 | DONE | BookingSheet component renders in-map; `visible={selectedDestination !== null}` in index.tsx:439; no route navigation |

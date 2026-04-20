@@ -56,3 +56,15 @@ Build site: context/plans/build-site.md
 - T-082: useRouteDirections wired to getRoute — DONE. Files: hooks/useRouteDirections.ts. Build P.
 - T-080: TS strict sweep — DONE. Files: SuggestionRow.tsx, routeLineCoordinates.ts, mapCamera.ts, _layout.tsx. Build P.
 - T-083: On-device smoke test — BLOCKED (manual, requires physical device). Next: manual QA.
+
+---
+# Loop Log — build-site-unified-booking-modal.md
+
+### Wave 1 (Tier 0) — 2026-04-20
+- T-120: sheetMode atom — DONE. Files: uiStore.ts, stores/index.ts. Build P. Next: T-122, T-124
+- T-121: SearchModeContent extract — DONE. Files: BookingSheet/SearchModeContent.tsx, BookingSheet/index.ts. Build P, 0 sessionToken hits. Next: T-123
+
+### Wave 2 (Tier 1) — 2026-04-20
+- T-122: BookingModeContent wrap — DONE. Files: BookingSheet.tsx. Build P. Next: T-123
+- T-123: Animated crossfade — DONE. Files: BookingSheet.tsx. modeProgress 260ms cubic, transitionComplete gates fare spinner. Build P. Next: T-125, T-126
+- T-124: Caller migration — DONE. Files: app/(main)/index.tsx. Old API removed, sheetMode sole source. Build P. Next: T-125, T-126, T-127
