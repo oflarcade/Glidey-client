@@ -268,6 +268,20 @@ export const BookingSheet = memo(function BookingSheet({
     }
   }, [visible, translateY, snapLevel]);
 
+  // Auto-snap to full when booking mode activates so CTA is always visible
+  useEffect(() => {
+    if (sheetMode === 'booking' || sheetMode === 'matching') {
+      snapLevel.value = 2;
+      translateY.value = withSpring(0, SPRING);
+      setSnap('full');
+    } else if (sheetMode === 'search') {
+      snapLevel.value = 1;
+      translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
+      setSnap('peek');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetMode]);
+
   const panGesture = Gesture.Pan()
     .onStart(() => {
       gestureStart.value = translateY.value;
