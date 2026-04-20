@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, useCallback } from 'react';
+import { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -246,7 +246,16 @@ export const BookingSheet = memo(function BookingSheet({
   const snapToMini = useCallback(() => setSnap('mini'), []);
   const snapToPeek = useCallback(() => setSnap('peek'), []);
   const snapToFull = useCallback(() => setSnap('full'), []);
-  const triggerDismiss = useCallback(() => { onDismissToSearch(); }, [onDismissToSearch]);
+  // Use ref so gesture worklet always captures current mode without recreating gesture
+  const sheetModeRef = useRef(sheetMode);
+  useEffect(() => { sheetModeRef.current = sheetMode; }, [sheetMode]);
+  const triggerDismiss = useCallback(() => {
+    if (sheetModeRef.current === 'search') {
+      setSheetMode('idle');
+    } else {
+      onDismissToSearch();
+    }
+  }, [onDismissToSearch, setSheetMode]);
 
   useEffect(() => {
     if (visible) {
@@ -267,39 +276,33 @@ export const BookingSheet = memo(function BookingSheet({
       translateY.value = Math.max(0, Math.min(FULL_HEIGHT, next));
     })
     .onEnd((e) => {
-      const goingDown = e.velocityY > 150 || e.translationY > 60;
-      const goingUp = e.velocityY < -150 || e.translationY < -60;
-      const fastFlickDown = e.velocityY > 800;
-
-      if (goingDown) {
-        if (snapLevel.value === 2) {
-          snapLevel.value = 1;
-          translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
-          runOnJS(snapToPeek)();
-        } else if (snapLevel.value === 1) {
-          snapLevel.value = 0;
-          translateY.value = withSpring(FULL_HEIGHT - MINI_HEIGHT, SPRING);
-          runOnJS(snapToMini)();
-        } else if (fastFlickDown) {
-          translateY.value = withSpring(FULL_HEIGHT, SPRING);
-          runOnJS(triggerDismiss)();
-        } else {
-          translateY.value = withSpring(FULL_HEIGHT - MINI_HEIGHT, SPRING);
-        }
-      } else if (goingUp) {
-        if (snapLevel.value === 0) {
-          snapLevel.value = 1;
-          translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
-          runOnJS(snapToPeek)();
-        } else if (snapLevel.value === 1) {
-          snapLevel.value = 2;
-          translateY.value = withSpring(0, SPRING);
-          runOnJS(snapToFull)();
-        }
+      // Fast flick down from mini → dismiss
+      if (e.velocityY > 800 && snapLevel.value === 0) {
+        translateY.value = withSpring(FULL_HEIGHT, SPRING);
+        runOnJS(triggerDismiss)();
+        return;
+      }
+      // Project position by velocity to find intended snap
+      const projected = Math.max(0, Math.min(FULL_HEIGHT, translateY.value + e.velocityY * 0.15));
+      const snapFull = 0;
+      const snapPeek = FULL_HEIGHT - PEEK_HEIGHT;
+      const snapMini = FULL_HEIGHT - MINI_HEIGHT;
+      const dFull = Math.abs(projected - snapFull);
+      const dPeek = Math.abs(projected - snapPeek);
+      const dMini = Math.abs(projected - snapMini);
+      const minDist = Math.min(dFull, dPeek, dMini);
+      if (minDist === dFull) {
+        snapLevel.value = 2;
+        translateY.value = withSpring(snapFull, SPRING);
+        runOnJS(snapToFull)();
+      } else if (minDist === dPeek) {
+        snapLevel.value = 1;
+        translateY.value = withSpring(snapPeek, SPRING);
+        runOnJS(snapToPeek)();
       } else {
-        if (snapLevel.value === 0) translateY.value = withSpring(FULL_HEIGHT - MINI_HEIGHT, SPRING);
-        else if (snapLevel.value === 1) translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
-        else translateY.value = withSpring(0, SPRING);
+        snapLevel.value = 0;
+        translateY.value = withSpring(snapMini, SPRING);
+        runOnJS(snapToMini)();
       }
     });
 
