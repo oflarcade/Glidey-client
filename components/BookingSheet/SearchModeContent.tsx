@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
 import type { Location, Suggestion } from '@rentascooter/shared';
 import { useUIStore, selectSheetMode } from '@rentascooter/shared';
@@ -109,11 +109,7 @@ export const SearchModeContent = memo(function SearchModeContent({
   );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={20}
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Welcome, {userName}</Text>
       </View>
@@ -151,7 +147,7 @@ export const SearchModeContent = memo(function SearchModeContent({
           testID="search-mode-history-list"
         />
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 });
 

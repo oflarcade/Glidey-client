@@ -8,6 +8,7 @@ import Animated, {
   Easing,
   interpolate,
   runOnJS,
+  useAnimatedKeyboard,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -306,8 +307,10 @@ export const BookingSheet = memo(function BookingSheet({
       }
     });
 
+  const keyboard = useAnimatedKeyboard();
+
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+    transform: [{ translateY: translateY.value - keyboard.height.value }],
   }));
 
   const isSearching = rideState === 'searching';
