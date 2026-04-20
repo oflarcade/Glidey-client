@@ -50,3 +50,6 @@ export { useRideTracking } from './useRideTracking';
 export type { UseRideTrackingResult } from './useRideTracking';
 
 export { useVehicleTypes, vehicleTypesKeys } from './useVehicleTypes';
+
+export { useCreateRide } from './useCreateRide';
+export type { UseCreateRideParams, UseCreateRideResult } from './useCreateRide';
