@@ -4,6 +4,9 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
+  Easing,
+  interpolate,
   runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -20,10 +23,11 @@ import type { ScooterTypeOption } from '@/components/ScooterCarousel/ScooterCaro
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MINI_HEIGHT = 155;  // compact summary + CTA
-const PEEK_HEIGHT = 330;  // vehicle carousel visible
-const FULL_HEIGHT = 580;  // full form
+const MINI_HEIGHT = 155;
+const PEEK_HEIGHT = 330;
+const FULL_HEIGHT = 580;
 const SPRING = { damping: 14, stiffness: 280, mass: 0.8 };
+const MODE_TRANSITION_DURATION = 260;
 
 type SnapLevel = 'mini' | 'peek' | 'full';
 
@@ -79,7 +83,6 @@ function BookingModeContent({
 }: BookingModeContentProps) {
   return (
     <View style={styles.body}>
-      {/* Destination row */}
       <View style={styles.row}>
         <Text style={styles.rowLabel}>Destination</Text>
         <View style={styles.rowValueCol}>
@@ -92,7 +95,6 @@ function BookingModeContent({
         </View>
       </View>
 
-      {/* Distance row */}
       {distanceM > 0 && (
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Distance</Text>
@@ -100,7 +102,6 @@ function BookingModeContent({
         </View>
       )}
 
-      {/* Vehicle-type carousel */}
       <View style={styles.carouselWrap}>
         {isFareLoading ? (
           <View style={styles.fareLoading}>
@@ -119,13 +120,11 @@ function BookingModeContent({
         ) : null}
       </View>
 
-      {/* Payment row placeholder */}
       <View style={styles.row}>
         <Text style={styles.rowLabel}>Paiement</Text>
         <Text style={styles.rowValue}>Espèces</Text>
       </View>
 
-      {/* Book Now */}
       <TouchableOpacity
         style={[styles.bookBtn, !canBook && styles.bookBtnDisabled]}
         onPress={onBookRide}
@@ -185,20 +184,61 @@ export const BookingSheet = memo(function BookingSheet({
   const insets = useSafeAreaInsets();
   const sheetMode = useUIStore(selectSheetMode);
 
-  // JS-side snap state drives which content is shown
+  // ── Snap state ──
   const [snap, setSnap] = useState<SnapLevel>('peek');
-
-  // translateY: FULL_HEIGHT = hidden, FULL_HEIGHT-MINI_HEIGHT = mini, etc.
   const translateY = useSharedValue(FULL_HEIGHT);
   const gestureStart = useSharedValue(0);
-  const snapLevel = useSharedValue(1); // 0=mini, 1=peek, 2=full
+  const snapLevel = useSharedValue(1);
 
+  // ── Mode transition animation ──
+  const isSearchMode = sheetMode === 'search';
+  const modeProgress = useSharedValue(isSearchMode ? 0 : 1);
+
+  // Mount flags: both may be true during the crossfade window
+  const [showSearchSurface, setShowSearchSurface] = useState(isSearchMode);
+  const [showBookingSurface, setShowBookingSurface] = useState(!isSearchMode);
+
+  // Gate fare loading indicator until search→booking transition completes (R10 AC 10)
+  const [transitionComplete, setTransitionComplete] = useState(!isSearchMode);
+
+  useEffect(() => {
+    if (sheetMode === 'search') {
+      setShowSearchSurface(true);
+      setTransitionComplete(false);
+      modeProgress.value = withTiming(0, {
+        duration: MODE_TRANSITION_DURATION,
+        easing: Easing.out(Easing.cubic),
+      }, (finished) => {
+        if (finished) runOnJS(setShowBookingSurface)(false);
+      });
+    } else if (sheetMode === 'booking' || sheetMode === 'matching') {
+      setShowBookingSurface(true);
+      modeProgress.value = withTiming(1, {
+        duration: MODE_TRANSITION_DURATION,
+        easing: Easing.out(Easing.cubic),
+      }, (finished) => {
+        if (finished) {
+          runOnJS(setShowSearchSurface)(false);
+          runOnJS(setTransitionComplete)(true);
+        }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetMode]);
+
+  const searchSurfaceStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(modeProgress.value, [0, 1], [1, 0]),
+  }));
+
+  const bookingSurfaceStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(modeProgress.value, [0, 1], [0, 1]),
+  }));
+
+  // ── Snap callbacks ──
   const snapToMini = useCallback(() => setSnap('mini'), []);
   const snapToPeek = useCallback(() => setSnap('peek'), []);
   const snapToFull = useCallback(() => setSnap('full'), []);
-  const triggerDismiss = useCallback(() => {
-    onDismissToSearch();
-  }, [onDismissToSearch]);
+  const triggerDismiss = useCallback(() => { onDismissToSearch(); }, [onDismissToSearch]);
 
   useEffect(() => {
     if (visible) {
@@ -225,38 +265,30 @@ export const BookingSheet = memo(function BookingSheet({
 
       if (goingDown) {
         if (snapLevel.value === 2) {
-          // full → peek
           snapLevel.value = 1;
           translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
           runOnJS(snapToPeek)();
         } else if (snapLevel.value === 1) {
-          // peek → mini
           snapLevel.value = 0;
           translateY.value = withSpring(FULL_HEIGHT - MINI_HEIGHT, SPRING);
           runOnJS(snapToMini)();
         } else if (fastFlickDown) {
-          // mini + fast flick → dismiss
           translateY.value = withSpring(FULL_HEIGHT, SPRING);
           runOnJS(triggerDismiss)();
         } else {
-          // mini + slow → stay mini
           translateY.value = withSpring(FULL_HEIGHT - MINI_HEIGHT, SPRING);
         }
       } else if (goingUp) {
         if (snapLevel.value === 0) {
-          // mini → peek
           snapLevel.value = 1;
           translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
           runOnJS(snapToPeek)();
         } else if (snapLevel.value === 1) {
-          // peek → full
           snapLevel.value = 2;
           translateY.value = withSpring(0, SPRING);
           runOnJS(snapToFull)();
         }
-        // already full → stay
       } else {
-        // no clear direction → snap back to current level
         if (snapLevel.value === 0) translateY.value = withSpring(FULL_HEIGHT - MINI_HEIGHT, SPRING);
         else if (snapLevel.value === 1) translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
         else translateY.value = withSpring(0, SPRING);
@@ -310,7 +342,7 @@ export const BookingSheet = memo(function BookingSheet({
           ]}
           pointerEvents={visible ? 'auto' : 'none'}
         >
-          {/* Handle + header row — visible in all modes */}
+          {/* Handle + X — visible in all modes */}
           <View style={styles.handleZone}>
             <View style={styles.handle} />
             <TouchableOpacity style={styles.xBtn} onPress={onDismissToSearch} hitSlop={12}>
@@ -318,79 +350,90 @@ export const BookingSheet = memo(function BookingSheet({
             </TouchableOpacity>
           </View>
 
-          {sheetMode === 'search' ? (
-            /* ── Search mode content — wired in T-126 ── */
-            null
-          ) : isSearching ? (
-            /* ── Searching state ── */
-            <View style={styles.searchingBody}>
-              {inFallback ? (
-                <>
-                  <ActivityIndicator size="large" color={colors.text.secondary} />
-                  <Text style={styles.searchingTitle}>Aucun conducteur disponible</Text>
-                  <Text style={styles.searchingSubtitle}>
-                    Tous les conducteurs sont occupés. Réessayez dans quelques minutes.
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.searchingTitle}>Recherche d'un conducteur…</Text>
-                  <RetryTimeline
-                    activeIndex={activeAttemptIndex}
-                    completedCount={completedAttempts}
-                  />
-                  <Text style={styles.searchingSubtitle}>
-                    {completedAttempts === 0
-                      ? 'Tentative 1 sur 3'
-                      : completedAttempts === 1
-                        ? 'Tentative 2 sur 3'
-                        : 'Dernière tentative'}
-                  </Text>
-                </>
-              )}
-              <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={isBusy}>
-                <Text style={styles.cancelBtnText}>Annuler la recherche</Text>
-              </TouchableOpacity>
-            </View>
-          ) : isMatched ? null : snap === 'mini' ? (
-            /* ── Mini state: summary + CTA ── */
-            <View style={styles.miniBody}>
-              <View style={styles.miniSummary}>
-                <Text style={styles.miniFrom} numberOfLines={1}>
-                  {pickupLabel}
-                </Text>
-                <Text style={styles.miniArrow}>→</Text>
-                <Text style={styles.miniTo} numberOfLines={1}>
-                  {destLabel}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.bookBtn, !canBook && styles.bookBtnDisabled]}
-                onPress={onBookRide}
-                disabled={!canBook}
+          {/* Mode-switching content area: two crossfading surfaces */}
+          <View style={styles.contentArea}>
+            {/* Search surface */}
+            {showSearchSurface && (
+              <Animated.View
+                style={[StyleSheet.absoluteFill, searchSurfaceStyle]}
+                pointerEvents={sheetMode === 'search' ? 'auto' : 'none'}
               >
-                {isBusy ? (
-                  <ActivityIndicator color="#fff" />
+                {/* SearchModeContent wired in T-126 */}
+              </Animated.View>
+            )}
+
+            {/* Booking surface */}
+            {showBookingSurface && (
+              <Animated.View
+                style={[StyleSheet.absoluteFill, bookingSurfaceStyle]}
+                pointerEvents={sheetMode !== 'search' ? 'auto' : 'none'}
+              >
+                {isSearching ? (
+                  <View style={styles.searchingBody}>
+                    {inFallback ? (
+                      <>
+                        <ActivityIndicator size="large" color={colors.text.secondary} />
+                        <Text style={styles.searchingTitle}>Aucun conducteur disponible</Text>
+                        <Text style={styles.searchingSubtitle}>
+                          Tous les conducteurs sont occupés. Réessayez dans quelques minutes.
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Text style={styles.searchingTitle}>Recherche d'un conducteur…</Text>
+                        <RetryTimeline
+                          activeIndex={activeAttemptIndex}
+                          completedCount={completedAttempts}
+                        />
+                        <Text style={styles.searchingSubtitle}>
+                          {completedAttempts === 0
+                            ? 'Tentative 1 sur 3'
+                            : completedAttempts === 1
+                              ? 'Tentative 2 sur 3'
+                              : 'Dernière tentative'}
+                        </Text>
+                      </>
+                    )}
+                    <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={isBusy}>
+                      <Text style={styles.cancelBtnText}>Annuler la recherche</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : isMatched ? null : snap === 'mini' ? (
+                  <View style={styles.miniBody}>
+                    <View style={styles.miniSummary}>
+                      <Text style={styles.miniFrom} numberOfLines={1}>{pickupLabel}</Text>
+                      <Text style={styles.miniArrow}>→</Text>
+                      <Text style={styles.miniTo} numberOfLines={1}>{destLabel}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.bookBtn, !canBook && styles.bookBtnDisabled]}
+                      onPress={onBookRide}
+                      disabled={!canBook}
+                    >
+                      {isBusy ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.bookBtnText}>Réserver maintenant</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 ) : (
-                  <Text style={styles.bookBtnText}>Réserver maintenant</Text>
+                  <BookingModeContent
+                    destination={destination}
+                    distanceM={distanceM}
+                    isFareLoading={isFareLoading && transitionComplete}
+                    fareError={fareError}
+                    carouselOptions={carouselOptions}
+                    selectedVehicleTypeId={selectedVehicleTypeId}
+                    onSelectVehicleType={onSelectVehicleType}
+                    canBook={canBook}
+                    isBusy={isBusy}
+                    onBookRide={onBookRide}
+                  />
                 )}
-              </TouchableOpacity>
-            </View>
-          ) : (
-            /* ── Peek / Full: BookingModeContent ── */
-            <BookingModeContent
-              destination={destination}
-              distanceM={distanceM}
-              isFareLoading={isFareLoading}
-              fareError={fareError}
-              carouselOptions={carouselOptions}
-              selectedVehicleTypeId={selectedVehicleTypeId}
-              onSelectVehicleType={onSelectVehicleType}
-              canBook={canBook}
-              isBusy={isBusy}
-              onBookRide={onBookRide}
-            />
-          )}
+              </Animated.View>
+            )}
+          </View>
         </Animated.View>
       </GestureDetector>
 
@@ -443,6 +486,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.secondary,
     fontWeight: '500',
+  },
+  contentArea: {
+    flex: 1,
+    overflow: 'hidden',
   },
 
   // ── Mini state ──
