@@ -1,5 +1,4 @@
 import { useCallback, useState, useRef, useMemo } from 'react';
-import { useRouter } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -22,12 +21,16 @@ import type { Location } from '@rentascooter/shared';
 import Constants from 'expo-constants';
 import { useNearbyDrivers, type NearbyDriver } from '@/hooks/useNearbyDrivers';
 import { useRouteDirections } from '@/hooks/useRouteDirections';
+import { useBooking } from '@/hooks/useBooking';
 import { getRouteLineCoordinates } from '@/utils/routeLineCoordinates';
 import { DriverMarkers } from '@/components/DriverMarkers';
 import { LocationModal, DestinationTip } from '@/components/LocationModal';
+import { BookingSheet } from '@/components/BookingSheet';
 import { animateToLocation } from '@/utils/mapAnimations';
 import { getMockDriversNear } from '@/utils/mockDrivers';
 import { useUser } from '@rentascooter/auth';
+import { useRideStore } from '@rentascooter/shared';
+import type { GeoPoint } from '@rentascooter/shared';
 
 /**
  * Client Main Screen
@@ -59,13 +62,16 @@ import { useUser } from '@rentascooter/auth';
  */
 
 export default function ClientMainScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile } = useUser();
   const { t } = useTranslation();
 
   // UI store for location modal state (sidebar toggle is in SidebarToggleButton)
   const { isLocationModalOpen, closeLocationModal } = useUIStore();
+
+  // Ride store state for BookingSheet
+  const rideState = useRideStore((s) => s.rideState);
+  const rideId = useRideStore((s) => s.rideId);
 
   // Camera ref for programmatic map control
   const cameraRef = useRef<MapboxGL.Camera>(null);
@@ -113,6 +119,29 @@ export default function ClientMainScreen() {
   const { directions } = useRouteDirections({
     userLocation: location,
     destination: selectedDestination,
+  });
+
+  // Booking sheet is visible when a destination is selected (auto-presents on confirmation, R1)
+  const showBookingSheet = selectedDestination !== null;
+
+  const pickup: GeoPoint | null = location
+    ? { latitude: location.latitude, longitude: location.longitude }
+    : null;
+
+  const {
+    fareEstimates,
+    selectedVehicleTypeId,
+    setSelectedVehicleTypeId,
+    isFareLoading,
+    fareError,
+    isBusy,
+    bookRide,
+    cancel: cancelBooking,
+  } = useBooking({
+    pickup,
+    destination: selectedDestination,
+    distanceM: directions?.distanceM ?? 0,
+    durationS: directions?.durationS ?? 0,
   });
 
   const routeLineCoords = useMemo(
@@ -192,24 +221,12 @@ export default function ClientMainScreen() {
   }, []);
 
   /**
-   * Navigate to BookingScreen with pickup + route data from the current map state.
+   * Handle booking sheet cancel — cancels an in-flight ride or clears destination.
    */
-  const handleBookNow = useCallback(() => {
-    if (!location || !selectedDestination) return;
-    router.push({
-      pathname: '/(main)/booking',
-      params: {
-        pickupLat: String(location.latitude),
-        pickupLng: String(location.longitude),
-        destLat: String(selectedDestination.latitude),
-        destLng: String(selectedDestination.longitude),
-        destAddress: selectedDestination.address ?? '',
-        destName: selectedDestination.name ?? '',
-        distanceM: String(directions?.distanceM ?? 0),
-        durationS: String(directions?.durationS ?? 0),
-      },
-    });
-  }, [location, selectedDestination, directions, router]);
+  const handleBookingCancel = useCallback(async () => {
+    await cancelBooking();
+    setSelectedDestination(null);
+  }, [cancelBooking]);
 
   /**
    * Handle location modal close
@@ -401,8 +418,25 @@ export default function ClientMainScreen() {
         onClearDestination={handleClearDestination}
         userLocation={userLocationForModal}
         userName={userName}
-        onBookNow={handleBookNow}
         testID="location-modal"
+      />
+
+      {/* In-map booking sheet — auto-presents on destination confirmation (R1) */}
+      <BookingSheet
+        visible={showBookingSheet}
+        destination={selectedDestination}
+        distanceM={directions?.distanceM ?? 0}
+        durationS={directions?.durationS ?? 0}
+        fareEstimates={fareEstimates}
+        selectedVehicleTypeId={selectedVehicleTypeId}
+        onSelectVehicleType={setSelectedVehicleTypeId}
+        isFareLoading={isFareLoading}
+        fareError={fareError}
+        isBusy={isBusy}
+        rideState={rideState}
+        rideId={rideId}
+        onBookRide={bookRide}
+        onCancel={handleBookingCancel}
       />
 
       {/* Location Services Prompt Modal (centered dialog) */}

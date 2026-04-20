@@ -14,3 +14,7 @@ export type { SidebarMenuItemProps } from './Sidebar';
 
 // Language
 export { LanguagePicker, type LanguagePickerProps } from './LanguagePicker';
+
+// Booking sheet
+export { BookingSheet } from './BookingSheet';
+export type { BookingSheetProps } from './BookingSheet';
