@@ -267,7 +267,13 @@ export default function ClientMainScreen() {
       setSelectedDestination(destination);
       closeLocationModal();
 
-      if (cameraRef.current) {
+      const hasValidCoords =
+        isFinite(destination.latitude) &&
+        isFinite(destination.longitude) &&
+        destination.latitude !== 0 &&
+        destination.longitude !== 0;
+
+      if (cameraRef.current && hasValidCoords) {
         try {
           await animateToLocation(
             cameraRef,
@@ -435,6 +441,7 @@ export default function ClientMainScreen() {
         rideId={rideId}
         onBookRide={bookRide}
         onCancel={handleBookingCancel}
+        onDismiss={handleClearDestination}
       />
 
       {/* Location Services Prompt Modal (centered dialog) */}
