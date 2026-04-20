@@ -362,8 +362,11 @@ export default function ClientMainScreen() {
           </MapboxGL.ShapeSource>
         )}
 
-        {/* Destination pin marker */}
-        {selectedDestination && (
+        {/* Destination pin marker — only render when coords are valid numbers */}
+        {selectedDestination &&
+          isFinite(selectedDestination.latitude) &&
+          isFinite(selectedDestination.longitude) &&
+          selectedDestination.latitude !== 0 && (
           <MapboxGL.MarkerView
             id="destination-marker"
             key={`destination-${selectedDestination.latitude}-${selectedDestination.longitude}`}
