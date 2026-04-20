@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, useMemo } from 'react';
+import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -73,6 +73,13 @@ export default function ClientMainScreen() {
   // Ride store state for BookingSheet
   const rideState = useRideStore((s) => s.rideState);
   const rideId = useRideStore((s) => s.rideId);
+
+  // Sync sheetMode with rideState transitions
+  useEffect(() => {
+    if (rideState === 'searching' || rideState === 'matched') {
+      setSheetMode('matching');
+    }
+  }, [rideState, setSheetMode]);
 
   // Camera ref for programmatic map control
   const cameraRef = useRef<MapboxGL.Camera>(null);
@@ -227,7 +234,8 @@ export default function ClientMainScreen() {
   const handleBookingCancel = useCallback(async () => {
     await cancelBooking();
     setSelectedDestination(null);
-  }, [cancelBooking]);
+    setSheetMode('search');
+  }, [cancelBooking, setSheetMode]);
 
   /**
    * Dismiss the booking sheet and return to search mode.
