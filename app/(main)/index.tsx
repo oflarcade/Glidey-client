@@ -93,8 +93,10 @@ export default function ClientMainScreen() {
     if (rideState === 'searching' && sheetMode === 'booking') {
       setSheetMode('matching');
     } else if (rideState === 'idle') {
-      // Reset sheet on any return to idle (covers post-ride rating flow reset)
-      if (sheetMode !== 'search' && sheetMode !== 'idle') {
+      // Reset sheet only when returning from a live ride (sheetMode='matching').
+      // Do NOT reset when sheetMode='booking' — that is the valid pre-booking state
+      // where the user selected a destination but hasn't tapped Book yet.
+      if (sheetMode === 'matching') {
         setSheetMode('search');
       }
       navigatedToReceiptRef.current = false;
