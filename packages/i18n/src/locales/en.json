@@ -24,7 +24,8 @@
     "french": "French",
     "english": "English",
     "or": "or",
-    "not_now": "Not now"
+    "not_now": "Not now",
+    "user": "User"
   },
   "tabs": {
     "home": "Home",
@@ -168,7 +169,8 @@
     "ride_history": "Ride History",
     "active_ride": "Active Ride",
     "cancel_ride": "Cancel Ride",
-    "cancel_ride_confirm": "Are you sure you want to cancel this ride?"
+    "cancel_ride_confirm": "Are you sure you want to cancel this ride?",
+    "trip_receipt": "Receipt"
   },
   "driver": {
     "go_online": "Go Online",
@@ -274,7 +276,8 @@
     "weak_password": "Password is too weak. Please use at least 6 characters.",
     "too_many_requests": "Too many failed attempts. Please wait before trying again.",
     "user_disabled": "This account has been disabled. Please contact support.",
-    "timeout": "The request timed out. Please try again."
+    "timeout": "The request timed out. Please try again.",
+    "rating_submit_failed": "Failed to submit rating. Please try again."
   },
   "notifications": {
     "ride_accepted": "Your ride has been accepted",
@@ -293,7 +296,8 @@
     "minutes": "{{count}} min",
     "hours": "{{count}} hr",
     "just_now": "Just now",
-    "ago": "{{time}} ago"
+    "ago": "{{time}} ago",
+    "at": "at"
   },
   "sidebar": {
     "rides": "Rides",
@@ -322,6 +326,9 @@
     "enable_services": "Enable Location Services",
     "open_settings": "Open Settings",
     "services_description": "Location services are needed to find nearby scooters and track your ride."
+  },
+  "tracking": {
+    "signal_lost": "Signal lost — awaiting location…"
   },
   "booking": {
     "search_welcome": "Welcome, {{name}}",

@@ -6,10 +6,12 @@ import { FullScreenMap, ArrivalBanner } from '@rentascooter/ui';
 import { colors, spacing } from '@rentascooter/ui/theme';
 import { useRideStore, selectMatchedDriver, selectRideId } from '@rentascooter/shared';
 import { useRideTracking } from '@/hooks/useRideTracking';
+import { useTranslation } from '@rentascooter/i18n';
 
 // ─── TrackingScreen (T-109, T-111, T-113, T-115) ─────────────────────────────
 
 export default function TrackingScreen() {
+  const { t } = useTranslation();
   const rideId = useRideStore(selectRideId);
   const matchedDriver = useRideStore(selectMatchedDriver);
   const cameraRef = useRef<MapboxGL.Camera>(null);
@@ -38,7 +40,7 @@ export default function TrackingScreen() {
       {/* Stale connectivity banner (T-115) */}
       {stale && (
         <SafeAreaView edges={['top']} style={styles.staleBanner} pointerEvents="none">
-          <Text style={styles.staleText}>Signal perdu — localisation en attente…</Text>
+          <Text style={styles.staleText}>{t('tracking.signal_lost')}</Text>
         </SafeAreaView>
       )}
 

@@ -53,7 +53,7 @@ export default function RidesScreen() {
         <TouchableOpacity onPress={() => handleRidePress(item.id)} activeOpacity={0.7}>
         <Card variant="elevated" padding="medium" style={styles.rideCard}>
           <View style={styles.rideHeader}>
-            <Text style={styles.rideDate}>{date} at {time}</Text>
+            <Text style={styles.rideDate}>{date} {t('time.at')} {time}</Text>
             <Badge
               label={isCompleted ? t('client.completed') : t('client.cancelled')}
               variant={isCompleted ? 'success' : 'error'}

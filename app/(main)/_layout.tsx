@@ -3,8 +3,10 @@ import { Stack } from 'expo-router';
 import { SidebarContent } from '@/components/Sidebar';
 import { UserProvider, useAuthStore } from '@rentascooter/auth';
 import { ensureClientProfile } from '@/services/userService';
+import { useTranslation } from '@rentascooter/i18n';
 
 export default function MainLayout() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -31,8 +33,8 @@ export default function MainLayout() {
     if (!phone) return;
 
     const name = profile
-      ? `${profile.firstName} ${profile.lastName}`.trim() || user.displayName || user.email || 'Utilisateur'
-      : user.displayName || user.email || 'Utilisateur';
+      ? `${profile.firstName} ${profile.lastName}`.trim() || user.displayName || user.email || t('common.user')
+      : user.displayName || user.email || t('common.user');
 
     bootstrapped.current = true;
     ensureClientProfile({

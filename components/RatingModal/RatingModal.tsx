@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -10,8 +10,16 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { StarRating } from '@rentascooter/ui';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
+import { useTranslation } from '@rentascooter/i18n';
 
 const MAX_COMMENT_LENGTH = 280;
 
@@ -26,8 +34,15 @@ export interface RatingModalProps {
 }
 
 export function RatingModal({ visible, onSubmit, onDismiss, loading = false }: RatingModalProps) {
+  const { t } = useTranslation();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const translateY = useSharedValue(0);
+
+  // Reset sheet position each time the modal opens
+  useEffect(() => {
+    if (visible) translateY.value = 0;
+  }, [visible, translateY]);
 
   const canSubmit = rating >= 1 && !loading;
   const remaining = MAX_COMMENT_LENGTH - comment.length;
@@ -44,6 +59,23 @@ export function RatingModal({ visible, onSubmit, onDismiss, loading = false }: R
     onDismiss();
   };
 
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (e.translationY > 0) translateY.value = e.translationY;
+    })
+    .onEnd((e) => {
+      if (e.translationY > 80 || e.velocityY > 500) {
+        translateY.value = withSpring(0);
+        runOnJS(handleDismiss)();
+      } else {
+        translateY.value = withSpring(0);
+      }
+    });
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
   return (
     <Modal
       visible={visible}
@@ -51,18 +83,12 @@ export function RatingModal({ visible, onSubmit, onDismiss, loading = false }: R
       animationType="slide"
       onRequestClose={handleDismiss}
     >
-      <TouchableOpacity
-        style={styles.backdrop}
-        activeOpacity={1}
-        onPress={handleDismiss}
-        accessibilityLabel="Dismiss rating modal"
-      />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.sheetWrapper}
       >
-        <View style={styles.sheet}>
+        <GestureDetector gesture={panGesture}>
+          <Animated.View style={[styles.sheet, sheetStyle]}>
           {/* Handle */}
           <View style={styles.handle} />
 
@@ -85,7 +111,7 @@ export function RatingModal({ visible, onSubmit, onDismiss, loading = false }: R
           <View style={styles.commentContainer}>
             <TextInput
               style={styles.commentInput}
-              placeholder="Ajouter un commentaire… / Add a comment…"
+              placeholder={t('client.review_placeholder')}
               placeholderTextColor={colors.text.tertiary ?? colors.text.secondary}
               value={comment}
               onChangeText={setComment}
@@ -122,17 +148,14 @@ export function RatingModal({ visible, onSubmit, onDismiss, loading = false }: R
               )}
             </TouchableOpacity>
           </View>
-        </View>
+          </Animated.View>
+        </GestureDetector>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
   sheetWrapper: {
     position: 'absolute',
     bottom: 0,

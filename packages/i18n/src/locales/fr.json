@@ -24,7 +24,8 @@
     "french": "Français",
     "english": "Anglais",
     "or": "ou",
-    "not_now": "Pas maintenant"
+    "not_now": "Pas maintenant",
+    "user": "Utilisateur"
   },
   "tabs": {
     "home": "Accueil",
@@ -168,7 +169,8 @@
     "ride_history": "Historique des trajets",
     "active_ride": "Trajet actif",
     "cancel_ride": "Annuler le trajet",
-    "cancel_ride_confirm": "Êtes-vous sûr de vouloir annuler ce trajet ?"
+    "cancel_ride_confirm": "Êtes-vous sûr de vouloir annuler ce trajet ?",
+    "trip_receipt": "Reçu"
   },
   "driver": {
     "go_online": "Passer en ligne",
@@ -274,7 +276,8 @@
     "weak_password": "Mot de passe trop faible. Veuillez utiliser au moins 6 caractères.",
     "too_many_requests": "Trop de tentatives échouées. Veuillez patienter avant de réessayer.",
     "user_disabled": "Ce compte a été désactivé. Veuillez contacter le support.",
-    "timeout": "La requête a expiré. Veuillez réessayer."
+    "timeout": "La requête a expiré. Veuillez réessayer.",
+    "rating_submit_failed": "Impossible d'envoyer la note. Réessayez."
   },
   "notifications": {
     "ride_accepted": "Votre trajet a été accepté",
@@ -293,7 +296,8 @@
     "minutes": "{{count}} min",
     "hours": "{{count}} h",
     "just_now": "À l'instant",
-    "ago": "Il y a {{time}}"
+    "ago": "Il y a {{time}}",
+    "at": "à"
   },
   "sidebar": {
     "rides": "Courses",
@@ -322,6 +326,9 @@
     "enable_services": "Activer les services de localisation",
     "open_settings": "Ouvrir les paramètres",
     "services_description": "Les services de localisation sont nécessaires pour trouver les scooters à proximité et suivre votre trajet."
+  },
+  "tracking": {
+    "signal_lost": "Signal perdu — localisation en attente…"
   },
   "booking": {
     "search_welcome": "Bienvenue, {{name}}",

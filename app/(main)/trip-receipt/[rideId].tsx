@@ -9,12 +9,44 @@ import { RatingModal } from '@/components/RatingModal';
 import { useRideHistory } from '@/hooks/useRideHistory';
 import { useRideStore } from '@rentascooter/shared';
 import { submitRating } from '@/services/ratingsService';
+import { useTranslation } from '@rentascooter/i18n';
+import type { Ride, MatchedDriver, JourneyData } from '@rentascooter/shared';
 
 type EntryPoint = 'completion' | 'history';
 
 const RATING_MODAL_DELAY_MS = 5000;
+const BRAND_BG = colors.primary.main; // golden yellow #FFC629
+
+// Synthesize a Ride from rideStore journey data for demo/completion mode when
+// backend history hasn't synced yet. Uses all data captured at booking time.
+function buildDemoRide(rideId: string, driver: MatchedDriver | null, journey: JourneyData | null): Ride {
+  const nameParts = driver?.name?.split(' ') ?? [];
+  const fareTotal = journey?.fareTotal ?? 0;
+  return {
+    id: rideId,
+    clientId: '',
+    pickup: journey?.pickup ?? { latitude: 0, longitude: 0, address: '—' },
+    destination: journey?.destination ?? { latitude: 0, longitude: 0, address: '—' },
+    status: 'completed',
+    fare: { baseFare: fareTotal, distanceFare: 0, timeFare: 0, total: fareTotal, currency: 'XOF' },
+    route: journey?.distanceM ? { distanceM: journey.distanceM, durationS: 0, polyline: '' } : undefined,
+    timestamps: { requestedAt: new Date() },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    driverInfo: driver
+      ? {
+          firstName: nameParts[0] ?? driver.name,
+          lastName: nameParts.slice(1).join(' '),
+          profilePicture: driver.profilePhoto ?? null,
+          rating: driver.rating,
+          vehicleInfo: { licensePlate: driver.vehiclePlate },
+        }
+      : undefined,
+  };
+}
 
 export default function TripReceiptScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { rideId, entryPoint } = useLocalSearchParams<{
     rideId: string;
@@ -23,9 +55,17 @@ export default function TripReceiptScreen() {
 
   const source: EntryPoint = entryPoint === 'history' ? 'history' : 'completion';
   const resetRideStore = useRideStore((s) => s.reset);
+  const matchedDriver = useRideStore((s) => s.matchedDriver);
+  const journey = useRideStore((s) => s.journey);
 
   const { rides, isLoading } = useRideHistory({ limit: 50 });
-  const ride = rides.find((r) => r.id === rideId);
+  const rideFromHistory = rides.find((r) => r.id === rideId);
+
+  // Completion flow: always show something — use real ride when history syncs, demo fallback otherwise.
+  // History flow: wait for real ride or show "not found".
+  const ride: Ride | undefined =
+    rideFromHistory ??
+    (source === 'completion' && rideId ? buildDemoRide(rideId, matchedDriver, journey) : undefined);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -41,14 +81,12 @@ export default function TripReceiptScreen() {
     router.replace('/');
   }, [router]);
 
-  // Dismiss without submitting → back to map + reset ride state
+  // Dismiss without rating → just close the modal; user stays on the receipt to review it.
+  // Store reset happens in handleBack when they actually leave.
   const handleDismiss = useCallback(() => {
     setModalVisible(false);
-    resetRideStore();
-    navigateToMap();
-  }, [navigateToMap, resetRideStore]);
+  }, []);
 
-  // Submit rating → backend → back to map + reset
   const handleSubmit = useCallback(
     async (rating: number, comment?: string) => {
       if (!rideId) return;
@@ -60,8 +98,8 @@ export default function TripReceiptScreen() {
         navigateToMap();
       } catch {
         Alert.alert(
-          'Erreur / Error',
-          'Impossible d\'envoyer la note. Réessayez.\n\nFailed to submit rating. Please try again.',
+          t('common.error'),
+          t('errors.rating_submit_failed'),
           [{ text: 'OK' }]
         );
       } finally {
@@ -72,17 +110,20 @@ export default function TripReceiptScreen() {
   );
 
   const handleBack = useCallback(() => {
+    if (source === 'completion') resetRideStore();
     router.back();
-  }, [router]);
+  }, [router, source, resetRideStore]);
 
-  const isAlreadyRated = Boolean(ride?.rating?.clientToDriver);
+  // Only check real history for already-rated state (demo ride has no rating)
+  const isAlreadyRated = Boolean(rideFromHistory?.rating?.clientToDriver);
 
-  if (isLoading) {
+  // Show loading spinner only for history flow — completion always has a fallback
+  if (isLoading && source === 'history') {
     return (
       <SafeAreaView style={styles.safeArea}>
         <Header onBack={handleBack} />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary.main} />
+          <ActivityIndicator size="large" color={colors.text.primary} />
         </View>
       </SafeAreaView>
     );
@@ -93,7 +134,7 @@ export default function TripReceiptScreen() {
       <SafeAreaView style={styles.safeArea}>
         <Header onBack={handleBack} />
         <View style={styles.centered}>
-          <Text style={styles.notFoundText}>Trajet introuvable / Ride not found</Text>
+          <Text style={styles.notFoundText}>{t('errors.ride_not_found')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -103,12 +144,8 @@ export default function TripReceiptScreen() {
     <SafeAreaView style={styles.safeArea}>
       <Header onBack={handleBack} />
 
-      <TripReceipt
-        ride={ride}
-        hostBackgroundColor={colors.background.secondary}
-      />
+      <TripReceipt ride={ride} hostBackgroundColor={BRAND_BG} />
 
-      {/* Rating modal — auto-shows 5 s after completion flow arrival; not shown for history flow or already-rated rides */}
       {source === 'completion' && !isAlreadyRated ? (
         <RatingModal
           visible={modalVisible}
@@ -122,12 +159,13 @@ export default function TripReceiptScreen() {
 }
 
 function Header({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={onBack} style={styles.backButton} accessibilityLabel="Back">
         <Icon name="chevron-left" size="md" color={colors.text.primary} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Reçu / Receipt</Text>
+      <Text style={styles.headerTitle}>{t('client.trip_receipt')}</Text>
       <View style={styles.headerSpacer} />
     </View>
   );
@@ -136,16 +174,14 @@ function Header({ onBack }: { onBack: () => void }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: BRAND_BG,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.tertiary,
+    backgroundColor: 'transparent', // floats on brand-colored background
   },
   backButton: {
     padding: spacing.xs,
@@ -166,7 +202,7 @@ const styles = StyleSheet.create({
   },
   notFoundText: {
     ...typography.body,
-    color: colors.text.secondary,
+    color: colors.text.primary,
     textAlign: 'center',
   },
 });
