@@ -68,3 +68,37 @@ Build site: context/plans/build-site.md
 - T-122: BookingModeContent wrap — DONE. Files: BookingSheet.tsx. Build P. Next: T-123
 - T-123: Animated crossfade — DONE. Files: BookingSheet.tsx. modeProgress 260ms cubic, transitionComplete gates fare spinner. Build P. Next: T-125, T-126
 - T-124: Caller migration — DONE. Files: app/(main)/index.tsx. Old API removed, sheetMode sole source. Build P. Next: T-125, T-126, T-127
+
+### Wave 3 (Tier 2–4) — 2026-04-21
+- T-125: Mini-snap body redesign — DONE. MINI_HEIGHT=100, condensed destination row (map-pin + name + chevron-right). Co-located in BookingSheet.tsx.
+- T-126: Wire SearchModeContent — DONE. SearchModeContent rendered in search surface, onConfirmDestination prop lifted through BookingSheet; handleDestinationSelect in index.tsx calls setSheetMode('booking').
+- T-127: Interactive destination row — DONE. Mini body is Pressable→setSheetMode('search'). BookingModeContent has onTapDestination→setSheetMode('search').
+- T-128: Delete standalone LocationModal — DONE. LocationModal.tsx deleted; components/index.ts + LocationModal/index.ts updated to remove LocationModal export. DestinationTip, SearchInput, LocationHistoryList, LocationSearchList child components retained.
+- T-129: Keyboard focus + layout — DONE. SearchModeContent has requestAnimationFrame focus on sheetMode→'search'. BookingSheet uses keyboardOffset Reanimated shared value (keyboard listeners + translateY offset).
+- T-130: Gesture refinements — DONE (existing nearest-snap + velocity-dismiss logic already covers R2.1/R2.8/R2.9).
+- T-131: sheetMode matching transition — DONE (fixed). index.tsx: rideState=searching+sheetMode=booking→matching; rideState=matched|idle+sheetMode=matching→idle. Also added mount auto-open in search mode.
+- T-132: Integration audit — DONE. Grep for old API (isLocationModalOpen/openLocationModal/closeLocationModal/activeBottomSheet/BottomSheetType/<LocationModal) returns 0 hits in source files.
+- T-133: Type-level enforcement — DONE. Removed unused pickupLabel/destLabel/truncate from BookingSheet. Pre-existing TS errors in auth+UI packages and old LocationModal child components not introduced by this refactor.
+
+---
+# Loop Log — build-site-trip-receipt-rating.md
+
+Build site: context/plans/build-site-trip-receipt-rating.md
+
+### Wave 1 — 2026-04-22
+- T-001: TripReceipt component — DONE. Files: components/TripReceipt/TripReceipt.tsx, components/TripReceipt/index.ts, components/index.ts. Build P, Tests N/A. Next: T-002, T-003, T-004
+
+### Wave 2 — 2026-04-22
+- T-002: TripReceipt torn-edge SVG — DONE. Files: components/TripReceipt/TripReceipt.tsx. Build P.
+- T-003: PDF stub link + Alert — DONE. Files: components/TripReceipt/TripReceipt.tsx. Build P.
+- T-004: Receipt screen + rides history wiring — DONE. Files: app/(main)/trip-receipt/[rideId].tsx, app/(main)/rides.tsx, app/(main)/_layout.tsx. Build P. Next: T-005, T-006, T-007
+
+### Wave 3 — 2026-04-22
+- T-005: Auto-nav to receipt on completed — DONE. Files: app/(main)/index.tsx. Build P.
+- T-006: History entry point — DONE (verified from T-004). No new files.
+- T-007: RatingModal component — DONE. Files: components/RatingModal/RatingModal.tsx, index.ts. Build P. Next: T-008, T-009
+
+### Wave 4 — 2026-04-22
+- T-008: Rating modal auto-show logic — DONE. Files: app/(main)/trip-receipt/[rideId].tsx. Build P. 5 s timeout, clearTimeout on unmount, handleDismiss/handleSubmit with resetRideStore+navigate.
+- T-009: Rating submission service — DONE. Files: services/ratingsService.ts, services/index.ts. Build P. Firebase callable stub with graceful not-found handling.
+- T-010: Ride state reset — DONE. Files: (no new files). Verified: resetRideStore() called in handleDismiss/handleSubmit (completion flow only); index.tsx idle branch resets sheetMode→search.

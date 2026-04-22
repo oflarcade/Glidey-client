@@ -55,3 +55,8 @@ export {
   subscribeToTracking,
   type TrackingCleanup,
 } from './trackingService';
+
+export {
+  submitRating,
+  type SubmitRatingRequest,
+} from './ratingsService';
