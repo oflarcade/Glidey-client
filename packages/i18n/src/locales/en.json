@@ -287,7 +287,9 @@
     "ride_started": "Your ride has started",
     "ride_completed": "Your ride is complete",
     "new_ride_available": "New ride available",
-    "ride_cancelled": "Ride has been cancelled"
+    "ride_cancelled": "Ride has been cancelled",
+    "empty_title": "No notifications",
+    "empty_subtitle": "You're all caught up!"
   },
   "currency": {
     "symbol": "XOF",

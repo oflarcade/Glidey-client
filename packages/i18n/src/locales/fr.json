@@ -287,7 +287,9 @@
     "ride_started": "Votre trajet a commencé",
     "ride_completed": "Votre trajet est terminé",
     "new_ride_available": "Nouveau trajet disponible",
-    "ride_cancelled": "Le trajet a été annulé"
+    "ride_cancelled": "Le trajet a été annulé",
+    "empty_title": "Aucune notification",
+    "empty_subtitle": "Vous êtes à jour !"
   },
   "currency": {
     "symbol": "XOF",

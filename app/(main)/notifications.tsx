@@ -1,81 +1,20 @@
-import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { colors, spacing } from '@rentascooter/ui/theme';
-import {
-  TopBar,
-  Icon,
-  NotificationItem,
-} from '@rentascooter/ui';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { colors, spacing, typography } from '@rentascooter/ui/theme';
+import { TopBar, Icon, NotificationItem } from '@rentascooter/ui';
 import type { NotificationData } from '@rentascooter/ui';
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useTranslation } from '@rentascooter/i18n';
 
-/**
- * Mock notification data for the client app
- */
-const MOCK_NOTIFICATIONS: NotificationData[] = [
-  {
-    id: '1',
-    type: 'success',
-    title: 'System',
-    message: 'Your ride #1234 has been successfully completed',
-    timestamp: new Date(),
-    isRead: false,
-  },
-  {
-    id: '2',
-    type: 'info',
-    title: 'System',
-    message: 'A driver is on the way to pick you up',
-    timestamp: new Date(Date.now() - 3600000),
-    isRead: true,
-  },
-  {
-    id: '3',
-    type: 'success',
-    title: 'System',
-    message: 'Thank you! Your payment of 1,500 XOF has been processed.',
-    timestamp: new Date(Date.now() - 7200000),
-    isRead: true,
-  },
-  {
-    id: '4',
-    type: 'warning',
-    title: 'System',
-    message: 'High demand in your area. Fares may be slightly higher.',
-    timestamp: new Date(Date.now() - 86400000),
-    isRead: true,
-  },
-  {
-    id: '5',
-    type: 'error',
-    title: 'System',
-    message: 'Your booking #1205 has been cancelled by the driver.',
-    timestamp: new Date(Date.now() - 172800000),
-    isRead: true,
-  },
-];
-
-/**
- * Notifications Screen
- *
- * Displays client notifications and alerts in a list format.
- * Each notification shows type-specific icon, title, and message.
- */
 export default function NotificationsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [notifications, setNotifications] = useState<NotificationData[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
 
   const handleNotificationPress = useCallback((notification: NotificationData) => {
-    // Mark as read when pressed
     setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === notification.id ? { ...n, isRead: true } : n
-      )
+      prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
     );
-    // TODO: Navigate to notification detail or relevant screen
-    console.log('Notification pressed:', notification.id);
   }, []);
 
   const handleBackPress = useCallback(() => {
@@ -103,12 +42,12 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       <TopBar
-        title={t('profile.notifications') || 'Notifications'}
+        title={t('profile.notifications')}
         leftAction={
           <TouchableOpacity
             onPress={handleBackPress}
             style={styles.backButton}
-            accessibilityLabel="Go back"
+            accessibilityLabel={t('common.back')}
           >
             <Icon name="chevron-left" size="md" color={colors.text.primary} />
           </TouchableOpacity>
@@ -121,6 +60,12 @@ export default function NotificationsScreen() {
         style={styles.list}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>{t('notifications.empty_title')}</Text>
+            <Text style={styles.emptySubtext}>{t('notifications.empty_subtitle')}</Text>
+          </View>
+        }
       />
     </View>
   );
@@ -139,5 +84,20 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxl,
+  },
+  emptyText: {
+    ...typography.h3,
+    color: colors.text.primary,
+  },
+  emptySubtext: {
+    ...typography.body,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
   },
 });
