@@ -1,15 +1,31 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
+  Alert,
+  Linking,
+  Modal,
+  Pressable,
+} from 'react-native';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
 import { TopBar, Icon } from '@rentascooter/ui';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@rentascooter/i18n';
+import { useAuth } from '@rentascooter/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { LanguagePicker } from '../../components/LanguagePicker';
 
-/**
- * Settings Item Component
- *
- * Renders a single setting row with icon, label, and optional value/toggle.
- */
+const STORAGE_KEYS = {
+  push: 'glidey:setting:push_notifications',
+  email: 'glidey:setting:email_notifications',
+  location: 'glidey:setting:location_sharing',
+};
+
 interface SettingsItemProps {
   icon: string;
   label: string;
@@ -76,49 +92,83 @@ function SettingsItem({
   return content;
 }
 
-/**
- * Settings Screen
- *
- * Displays app settings and preferences for the client app.
- * Includes notification preferences, language, privacy, and more.
- */
 export default function SettingsScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const { logout } = useAuth();
 
-  // Settings state
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [locationSharing, setLocationSharing] = useState(true);
+  const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
+
+  useEffect(() => {
+    async function loadSettings() {
+      const [push, email, location] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.push),
+        AsyncStorage.getItem(STORAGE_KEYS.email),
+        AsyncStorage.getItem(STORAGE_KEYS.location),
+      ]);
+      if (push !== null) setPushNotifications(push === 'true');
+      if (email !== null) setEmailNotifications(email === 'true');
+      if (location !== null) setLocationSharing(location === 'true');
+    }
+    loadSettings();
+  }, []);
 
   const handleBackPress = useCallback(() => {
     router.back();
   }, [router]);
 
+  const handlePushToggle = useCallback((value: boolean) => {
+    setPushNotifications(value);
+    AsyncStorage.setItem(STORAGE_KEYS.push, String(value));
+  }, []);
+
+  const handleEmailToggle = useCallback((value: boolean) => {
+    setEmailNotifications(value);
+    AsyncStorage.setItem(STORAGE_KEYS.email, String(value));
+  }, []);
+
+  const handleLocationToggle = useCallback((value: boolean) => {
+    setLocationSharing(value);
+    AsyncStorage.setItem(STORAGE_KEYS.location, String(value));
+  }, []);
+
   const handleLanguagePress = useCallback(() => {
-    // TODO: Navigate to language selection screen
-    console.log('Language settings pressed');
+    setLanguagePickerVisible(true);
   }, []);
 
   const handlePrivacyPress = useCallback(() => {
-    // TODO: Navigate to privacy settings screen
-    console.log('Privacy settings pressed');
+    Linking.openURL('https://glidey.sn/privacy');
   }, []);
 
   const handleHelpPress = useCallback(() => {
-    // TODO: Navigate to help/support screen
-    console.log('Help pressed');
+    Linking.openURL('https://glidey.sn/help');
   }, []);
 
   const handleAboutPress = useCallback(() => {
-    // TODO: Navigate to about screen
-    console.log('About pressed');
+    const appName = Constants.expoConfig?.name ?? 'Glidey';
+    const version = Constants.expoConfig?.version ?? '1.0.0';
+    Alert.alert(appName, `v${version}`);
   }, []);
 
   const handleDeleteAccountPress = useCallback(() => {
-    // TODO: Show delete account confirmation dialog
-    console.log('Delete account pressed');
-  }, []);
+    Alert.alert(
+      t('settings.delete_account'),
+      t('settings.delete_account_confirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.confirm'),
+          style: 'destructive',
+          onPress: () => { logout(); },
+        },
+      ]
+    );
+  }, [t, logout]);
+
+  const languageLabel = locale === 'fr' ? t('common.french') : t('common.english');
 
   return (
     <View style={styles.container}>
@@ -150,14 +200,14 @@ export default function SettingsScreen() {
               label={t('settings.push_notifications') || 'Push Notifications'}
               hasToggle
               toggleValue={pushNotifications}
-              onToggle={setPushNotifications}
+              onToggle={handlePushToggle}
             />
             <SettingsItem
               icon="mail"
               label={t('settings.email_notifications') || 'Email Notifications'}
               hasToggle
               toggleValue={emailNotifications}
-              onToggle={setEmailNotifications}
+              onToggle={handleEmailToggle}
             />
           </View>
         </View>
@@ -173,7 +223,7 @@ export default function SettingsScreen() {
               label={t('settings.location_sharing') || 'Location Sharing'}
               hasToggle
               toggleValue={locationSharing}
-              onToggle={setLocationSharing}
+              onToggle={handleLocationToggle}
             />
             <SettingsItem
               icon="shield"
@@ -192,7 +242,7 @@ export default function SettingsScreen() {
             <SettingsItem
               icon="flag"
               label={t('settings.language') || 'Language'}
-              value="Français"
+              value={languageLabel}
               onPress={handleLanguagePress}
             />
             <SettingsItem
@@ -225,9 +275,27 @@ export default function SettingsScreen() {
 
         {/* App Version */}
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>GLIDEY v1.0.0</Text>
+          <Text style={styles.versionText}>
+            GLIDEY v{Constants.expoConfig?.version ?? '1.0.0'}
+          </Text>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={languagePickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLanguagePickerVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setLanguagePickerVisible(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={() => {}}>
+            <LanguagePicker />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -302,5 +370,18 @@ const styles = StyleSheet.create({
   versionText: {
     ...typography.caption,
     color: colors.text.tertiary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 16,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    width: '80%',
   },
 });

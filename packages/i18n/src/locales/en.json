@@ -319,7 +319,8 @@
     "help_support": "Help & Support",
     "about": "About",
     "account": "Account",
-    "delete_account": "Delete Account"
+    "delete_account": "Delete Account",
+    "delete_account_confirm": "This will log you out. Full account deletion is not yet available. Continue?"
   },
   "location": {
     "disabled": "Location Disabled",

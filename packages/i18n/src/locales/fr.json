@@ -319,7 +319,8 @@
     "help_support": "Aide et support",
     "about": "À propos",
     "account": "Compte",
-    "delete_account": "Supprimer le compte"
+    "delete_account": "Supprimer le compte",
+    "delete_account_confirm": "Cela vous déconnectera. La suppression complète du compte n'est pas encore disponible. Continuer ?"
   },
   "location": {
     "disabled": "Localisation désactivée",
