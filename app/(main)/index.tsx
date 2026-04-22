@@ -28,6 +28,7 @@ import { getRouteLineCoordinates } from '@/utils/routeLineCoordinates';
 import { DriverMarkers } from '@/components/DriverMarkers';
 import { DestinationTip } from '@/components/LocationModal';
 import { BookingSheet } from '@/components/BookingSheet';
+import { getMatchingStatus } from '@/services/matchingService';
 import { animateToLocation, animateToDestination } from '@/utils/mapAnimations';
 import { getMockDriversNear } from '@/utils/mockDrivers';
 import { useUser } from '@rentascooter/auth';
@@ -79,6 +80,7 @@ export default function ClientMainScreen() {
   const rideId = useRideStore((s) => s.rideId);
   const matchedDriver = useRideStore((s) => s.matchedDriver);
   const resetRideStore = useRideStore((s) => s.reset);
+  const transition = useRideStore((s) => s.transition);
 
   // Guard: navigate to receipt screen exactly once per completion event
   const navigatedToReceiptRef = useRef(false);
@@ -111,6 +113,27 @@ export default function ClientMainScreen() {
       setSheetMode('search');
     }
   }, [rideState, sheetMode, setSheetMode, resetRideStore, rideId, router]);
+
+  // Poll ride status during pickup_en_route so we catch ride:completed from the backend.
+  // The matching subscription is torn down after matching; this is the production path
+  // that bridges pickup_en_route → completed without relying on the demo timer.
+  useEffect(() => {
+    if (rideState !== 'pickup_en_route' || !rideId) return;
+    let active = true;
+    const id = setInterval(async () => {
+      try {
+        const { state } = await getMatchingStatus(rideId);
+        if (!active) return;
+        if (state === 'completed') {
+          transition('completed');
+        } else if (state === 'cancelled') {
+          resetRideStore();
+          setSheetMode('search');
+        }
+      } catch { /* non-terminal — next interval retries */ }
+    }, 5000);
+    return () => { active = false; clearInterval(id); };
+  }, [rideState, rideId, transition, resetRideStore, setSheetMode]);
 
   // Camera ref for programmatic map control
   const cameraRef = useRef<MapboxGL.Camera>(null);

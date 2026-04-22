@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Pressable, Keyboard, Platform, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { View, Text, TouchableOpacity, ActivityIndicator, Pressable, Keyboard, Platform, StyleSheet, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -12,19 +13,18 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
-import { RetryTimeline, Icon } from '@rentascooter/ui';
+import { RetryTimeline, Icon, rem } from '@rentascooter/ui';
 import { ScooterCarousel } from '@/components/ScooterCarousel/ScooterCarousel';
-import { DriverReveal } from '@/components/DriverReveal/DriverReveal';
 import { useMatching } from '@/hooks/useMatching';
-import { useUIStore, selectSheetMode } from '@rentascooter/shared';
-import type { FareEstimateItem, Location } from '@rentascooter/shared';
+import { useUIStore, selectSheetMode, useRideStore } from '@rentascooter/shared';
+import type { FareEstimateItem, Location, MatchedDriver } from '@rentascooter/shared';
 import { SearchModeContent } from './SearchModeContent';
 import type { IconName } from '@rentascooter/ui';
 import type { ScooterTypeOption } from '@/components/ScooterCarousel/ScooterCarousel';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MINI_HEIGHT = 100;
+const MINI_HEIGHT = 120;
 const PEEK_HEIGHT = 460;
 const FULL_HEIGHT = 580;
 const SPRING = { damping: 14, stiffness: 280, mass: 0.8 };
@@ -43,16 +43,15 @@ function iconKeyToIconName(iconKey: string): IconName {
   return (map[iconKey] ?? 'vehicle') as IconName;
 }
 
+function getInitials(name: string): string {
+  return name.split(' ').map((w) => w[0] ?? '').join('').toUpperCase().slice(0, 2);
+}
+
 function formatXOF(amount: number): string {
   return (
     new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(amount)) +
     ' XOF'
   );
-}
-
-function truncate(str: string | undefined | null, max: number): string {
-  if (!str) return '';
-  return str.length > max ? str.slice(0, max - 1) + '…' : str;
 }
 
 // ─── BookingModeContent ───────────────────────────────────────────────────────
@@ -96,6 +95,7 @@ function BookingModeContent({
             <Text style={styles.rowSubValue} numberOfLines={1}>{destination.address}</Text>
           ) : null}
         </View>
+        <Icon name="edit" size={16} color={colors.text.tertiary} />
       </Pressable>
 
       {distanceM > 0 && (
@@ -129,7 +129,7 @@ function BookingModeContent({
       </View>
 
       <TouchableOpacity
-        style={[styles.bookBtn, !canBook && styles.bookBtnDisabled]}
+        style={[styles.bookBtn, !canBook && !isBusy && styles.bookBtnDisabled]}
         onPress={onBookRide}
         disabled={!canBook}
       >
@@ -160,9 +160,11 @@ export interface BookingSheetProps {
   rideState: string;
   rideId: string | null;
   onBookRide: () => void;
-  onCancel: () => void;
+  onCancel: () => Promise<void>;
   onDismiss: () => void;
   onDismissToSearch: () => void;
+  onCancelFromMini: () => void;
+  matchedDriver: MatchedDriver | null;
   userName: string;
   onConfirmDestination: (loc: Location) => void;
 }
@@ -171,9 +173,9 @@ export interface BookingSheetProps {
 
 export const BookingSheet = memo(function BookingSheet({
   visible,
-  pickup,
   destination,
   distanceM,
+  durationS,
   fareEstimates,
   selectedVehicleTypeId,
   onSelectVehicleType,
@@ -185,15 +187,28 @@ export const BookingSheet = memo(function BookingSheet({
   onBookRide,
   onCancel,
   onDismissToSearch,
+  onCancelFromMini,
+  matchedDriver,
   userName,
   onConfirmDestination,
 }: BookingSheetProps) {
   const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get('window').height;
+  // Lowest translateY allowed: sheet top clears header bottom edge + rounded corner buffer
+  const minTranslateY = insets.top + rem(1.5) + spacing.lg + FULL_HEIGHT - screenHeight;
   const sheetMode = useUIStore(selectSheetMode);
   const setSheetMode = useUIStore((s) => s.setSheetMode);
 
   // ── Snap state ──
   const [snap, setSnap] = useState<SnapLevel>('peek');
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+  const [cancelFeeWarningOpen, setCancelFeeWarningOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelErr, setCancelErr] = useState<string | null>(null);
+  const [hasArrived, setHasArrived] = useState(false);
+  const [enRouteEtaS, setEnRouteEtaS] = useState(0);
+  const [enRouteHasArrived, setEnRouteHasArrived] = useState(false);
+  const enRouteInitialized = useRef(false);
   const translateY = useSharedValue(FULL_HEIGHT);
   const gestureStart = useSharedValue(0);
   const snapLevel = useSharedValue(1);
@@ -247,9 +262,23 @@ export const BookingSheet = memo(function BookingSheet({
   }));
 
   // ── Snap callbacks ──
-  const snapToMini = useCallback(() => setSnap('mini'), []);
-  const snapToPeek = useCallback(() => setSnap('peek'), []);
+  const snapToMini = useCallback(() => { setSnap('mini'); Keyboard.dismiss(); }, []);
+  const snapToPeek = useCallback(() => { setSnap('peek'); Keyboard.dismiss(); }, []);
   const snapToFull = useCallback(() => setSnap('full'), []);
+
+  // ── Cancel confirmation ──
+  const handleConfirmCancel = useCallback(async () => {
+    setCancelling(true);
+    setCancelErr(null);
+    try {
+      await onCancel();
+      setConfirmCancelOpen(false);
+    } catch (e: unknown) {
+      setCancelErr((e as { message?: string })?.message ?? 'Impossible d\'annuler. Réessayez.');
+    } finally {
+      setCancelling(false);
+    }
+  }, [onCancel]);
   // Use ref so gesture worklet always captures current mode without recreating gesture
   const sheetModeRef = useRef(sheetMode);
   useEffect(() => { sheetModeRef.current = sheetMode; }, [sheetMode]);
@@ -289,11 +318,20 @@ export const BookingSheet = memo(function BookingSheet({
       translateY.value = Math.max(0, Math.min(FULL_HEIGHT, next));
     })
     .onEnd((e) => {
-      // Booking/matching mode: no scrolling — always lock at peek
+      // Booking/matching mode: allow peek ↔ mini but never dismiss
       if (isBookingModeShared.value === 1) {
-        snapLevel.value = 1;
-        translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
-        runOnJS(snapToPeek)();
+        const projected = Math.max(0, Math.min(FULL_HEIGHT, translateY.value + e.velocityY * 0.15));
+        const snapPeek = FULL_HEIGHT - PEEK_HEIGHT;
+        const snapMini = FULL_HEIGHT - MINI_HEIGHT;
+        if (Math.abs(projected - snapMini) < Math.abs(projected - snapPeek)) {
+          snapLevel.value = 0;
+          translateY.value = withSpring(snapMini, SPRING);
+          runOnJS(snapToMini)();
+        } else {
+          snapLevel.value = 1;
+          translateY.value = withSpring(snapPeek, SPRING);
+          runOnJS(snapToPeek)();
+        }
         return;
       }
       // Fast flick down from mini → dismiss
@@ -348,15 +386,100 @@ export const BookingSheet = memo(function BookingSheet({
   }, []);
 
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value - keyboardOffset.value }],
+    transform: [{ translateY: Math.max(minTranslateY, translateY.value - keyboardOffset.value) }],
   }));
 
   const isSearching = rideState === 'searching';
   const isMatched = rideState === 'matched';
+  const isEnRoute = rideState === 'pickup_en_route';
+  const transition = useRideStore((s) => s.transition);
 
   const { activeAttemptIndex, completedAttempts, inFallback } = useMatching(
     isSearching ? rideId : null,
   );
+
+  // ETA countdown — starts from matchedDriver.etaSeconds when matched
+  const [etaS, setEtaS] = useState(0);
+  const etaInitialized = useRef(false);
+  useEffect(() => {
+    if (!isMatched || !matchedDriver) {
+      setEtaS(0);
+      setHasArrived(false);
+      etaInitialized.current = false;
+      return;
+    }
+    etaInitialized.current = true;
+    setEtaS(matchedDriver.etaSeconds ?? 300);
+    const id = setInterval(() => setEtaS((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [isMatched, matchedDriver]);
+  // Latch hasArrived when countdown reaches 0 (never reverts)
+  useEffect(() => {
+    if (etaS === 0 && etaInitialized.current) setHasArrived(true);
+  }, [etaS]);
+
+  // Haptic on match entry — fires once per transition into matched
+  const prevMatchedRef = useRef(false);
+  useEffect(() => {
+    if (isMatched && !prevMatchedRef.current) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    prevMatchedRef.current = isMatched;
+  }, [isMatched]);
+
+  const [elapsedS, setElapsedS] = useState(0);
+  useEffect(() => {
+    if (!isSearching) { setElapsedS(0); return; }
+    setElapsedS(0);
+    const id = setInterval(() => setElapsedS((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [isSearching]);
+  const elapsedLabel = `${Math.floor(elapsedS / 60).toString().padStart(2, '0')}:${(elapsedS % 60).toString().padStart(2, '0')}`;
+
+  // Demo trigger: ~3s after driver arrives, auto-transition to pickup_en_route
+  useEffect(() => {
+    if (!hasArrived || !isMatched) return;
+    const id = setTimeout(() => transition('pickup_en_route'), 3000);
+    return () => clearTimeout(id);
+  }, [hasArrived, isMatched, transition]);
+
+  // Auto-snap to mini and lock gesture when entering pickup_en_route
+  useEffect(() => {
+    if (isEnRoute) {
+      setSnap('mini');
+      isBookingModeShared.value = 1;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEnRoute]);
+
+  // En-route ETA countdown seeded from durationS
+  useEffect(() => {
+    if (!isEnRoute) {
+      setEnRouteEtaS(0);
+      setEnRouteHasArrived(false);
+      enRouteInitialized.current = false;
+      return;
+    }
+    enRouteInitialized.current = true;
+    const seedS = durationS > 0 ? durationS : 300;
+    setEnRouteEtaS(__DEV__ ? Math.min(seedS, 300) : seedS);
+    const id = setInterval(() => setEnRouteEtaS((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [isEnRoute, durationS]);
+
+  // Latch enRouteHasArrived when en-route countdown reaches 0
+  useEffect(() => {
+    if (enRouteEtaS === 0 && enRouteInitialized.current) setEnRouteHasArrived(true);
+  }, [enRouteEtaS]);
+
+  // Demo/fallback: auto-complete ride 3 s after en-route ETA reaches 0.
+  // In production the backend fires ride:completed which reaches index.tsx via
+  // the pickup_en_route status poll; this effect is the safety net for demo mode.
+  useEffect(() => {
+    if (!enRouteHasArrived || !isEnRoute) return;
+    const id = setTimeout(() => transition('completed'), 3000);
+    return () => clearTimeout(id);
+  }, [enRouteHasArrived, isEnRoute, transition]);
 
   const carouselOptions: ScooterTypeOption[] = (fareEstimates ?? []).map(
     (item): ScooterTypeOption => ({
@@ -380,8 +503,6 @@ export const BookingSheet = memo(function BookingSheet({
     !isSearching &&
     !isMatched;
 
-  const pickupLabel = truncate(pickup?.name ?? pickup?.address ?? 'Ma position', 20);
-  const destLabel = truncate(destination?.name ?? destination?.address ?? '—', 22);
 
   return (
     <>
@@ -394,13 +515,12 @@ export const BookingSheet = memo(function BookingSheet({
           ]}
           pointerEvents={visible ? 'auto' : 'none'}
         >
-          {/* Handle + X — visible in all modes */}
-          <View style={styles.handleZone}>
-            <View style={styles.handle} />
-            <TouchableOpacity style={styles.xBtn} onPress={onDismissToSearch} hitSlop={12}>
-              <Text style={styles.xBtnText}>✕</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Handle — only in booking/matching modes */}
+          {sheetMode !== 'search' && (
+            <View style={styles.handleZone}>
+              <View style={styles.handle} />
+            </View>
+          )}
 
           {/* Mode-switching content area: two crossfading surfaces */}
           <View style={styles.contentArea}>
@@ -424,45 +544,254 @@ export const BookingSheet = memo(function BookingSheet({
                 pointerEvents={sheetMode !== 'search' ? 'auto' : 'none'}
               >
                 {isSearching ? (
-                  <View style={styles.searchingBody}>
+                  <View style={[styles.searchingBody, { height: PEEK_HEIGHT - 20 - insets.bottom - spacing.md }]}>
                     {inFallback ? (
                       <>
-                        <ActivityIndicator size="large" color={colors.text.secondary} />
-                        <Text style={styles.searchingTitle}>Aucun conducteur disponible</Text>
-                        <Text style={styles.searchingSubtitle}>
-                          Tous les conducteurs sont occupés. Réessayez dans quelques minutes.
-                        </Text>
+                        <View style={styles.searchingHeader}>
+                          <Text style={styles.searchingTitle}>Aucun conducteur disponible</Text>
+                        </View>
+                        <View style={styles.searchingCenter}>
+                          <ActivityIndicator size="large" color={colors.text.secondary} />
+                          <Text style={styles.searchingSubtitle}>
+                            Tous les conducteurs sont occupés. Réessayez dans quelques minutes.
+                          </Text>
+                        </View>
                       </>
                     ) : (
                       <>
-                        <Text style={styles.searchingTitle}>Recherche d'un conducteur…</Text>
-                        <RetryTimeline
-                          activeIndex={activeAttemptIndex}
-                          completedCount={completedAttempts}
-                        />
-                        <Text style={styles.searchingSubtitle}>
-                          {completedAttempts === 0
-                            ? 'Tentative 1 sur 3'
-                            : completedAttempts === 1
-                              ? 'Tentative 2 sur 3'
-                              : 'Dernière tentative'}
-                        </Text>
+                        <View style={styles.searchingHeader}>
+                          <View style={styles.searchingTitleRow}>
+                            <Text style={styles.searchingTitle}>Recherche d'un conducteur…</Text>
+                            <Text style={styles.searchingTimer}>{elapsedLabel}</Text>
+                          </View>
+                          <RetryTimeline
+                            activeIndex={activeAttemptIndex}
+                            completedCount={completedAttempts}
+                          />
+                        </View>
+                        <View style={styles.searchingCenter}>
+                          <ActivityIndicator size="large" color={colors.primary.main} />
+                          <Text style={styles.searchingSubtitle}>
+                            {completedAttempts === 0
+                              ? 'Tentative 1 sur 3'
+                              : completedAttempts === 1
+                                ? 'Tentative 2 sur 3'
+                                : 'Dernière tentative'}
+                          </Text>
+                        </View>
                       </>
                     )}
-                    <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={isBusy}>
+                    <TouchableOpacity
+                      style={[styles.cancelBtn, isBusy && styles.cancelBtnDisabled]}
+                      onPress={() => { setCancelErr(null); setConfirmCancelOpen(true); }}
+                      disabled={isBusy}
+                    >
                       <Text style={styles.cancelBtnText}>Annuler la recherche</Text>
                     </TouchableOpacity>
                   </View>
-                ) : isMatched ? null : snap === 'mini' ? (
-                  <Pressable style={styles.miniBody} onPress={() => setSheetMode('search')}>
-                    <Icon name="map-pin" size={18} color={colors.primary.main} />
-                    <View style={styles.miniDestCol}>
-                      <Text style={styles.miniDestName} numberOfLines={1}>
-                        {destination?.name ?? destination?.address ?? 'Where to?'}
-                      </Text>
+                ) : isEnRoute && matchedDriver ? (
+                  snap === 'mini' ? (
+                    <View style={styles.enRouteMiniWrap}>
+                      {(() => {
+                        const pct = Math.min(95, durationS > 0 ? ((durationS - enRouteEtaS) / durationS) * 95 : 0);
+                        return (
+                          <View style={styles.enRouteProgressContainer}>
+                            <View style={styles.enRouteProgressTrack}>
+                              <View style={[styles.enRouteProgressFill, { width: `${pct}%` as `${number}%` }]} />
+                            </View>
+                            <View style={[styles.enRouteMovingPin, { left: `${pct}%` as `${number}%` }]}>
+                              <View style={styles.enRouteMovingPinCircle}>
+                                <Icon name="user-pin" size={12} color="#000" />
+                              </View>
+                            </View>
+                            <View style={styles.enRouteEndPin}>
+                              <Icon name="destination-pin" size={18} color={colors.primary.main} />
+                            </View>
+                          </View>
+                        );
+                      })()}
+                      <View style={styles.enRouteMiniInfo}>
+                        <View style={[styles.avatarCircle, styles.avatarCircleSm]}>
+                          <Text style={[styles.avatarText, styles.avatarTextSm]}>
+                            {getInitials(matchedDriver.name)}
+                          </Text>
+                        </View>
+                        <View style={styles.enRouteMiniNameCol}>
+                          <Text style={styles.miniDestName} numberOfLines={1}>{matchedDriver.name}</Text>
+                          <Text style={styles.matchedDriverSub} numberOfLines={1}>
+                            {matchedDriver.vehicleType} · {matchedDriver.vehiclePlate}
+                          </Text>
+                        </View>
+                        <View style={styles.enRouteMiniEtaCol}>
+                          <Text style={styles.enRouteMiniEtaValue}>
+                            {enRouteHasArrived
+                              ? 'Arrivé'
+                              : `${Math.floor(enRouteEtaS / 60).toString().padStart(2, '0')}:${(enRouteEtaS % 60).toString().padStart(2, '0')}`}
+                          </Text>
+                          <Text style={styles.enRouteMiniEtaLabel}>ETA</Text>
+                        </View>
+                      </View>
                     </View>
-                    <Icon name="chevron-right" size={18} color={colors.text.tertiary} />
-                  </Pressable>
+                  ) : (
+                    <View style={[styles.searchingBody, { height: PEEK_HEIGHT - 20 - insets.bottom - spacing.md }]}>
+                      <View style={styles.matchedDriverRow}>
+                        <View style={styles.avatarCircle}>
+                          <Text style={styles.avatarText}>{getInitials(matchedDriver.name)}</Text>
+                        </View>
+                        <View style={styles.matchedDriverInfo}>
+                          <Text style={styles.matchedDriverName}>{matchedDriver.name}</Text>
+                          <Text style={styles.matchedDriverSub}>
+                            {matchedDriver.vehicleType} · {matchedDriver.vehiclePlate}
+                          </Text>
+                        </View>
+                        <Text style={styles.matchedRating}>★ {matchedDriver.rating.toFixed(1)}</Text>
+                      </View>
+                      {destination && (
+                        <View style={styles.enRouteDestRow}>
+                          <Icon name="destination-pin" size={14} color={colors.text.secondary} />
+                          <Text style={styles.enRouteDestText} numberOfLines={1}>
+                            {destination.name ?? destination.address}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.matchedEtaBlock}>
+                        <Text style={styles.matchedEtaLabel}>ETA à destination</Text>
+                        <Text style={styles.matchedEtaValue}>
+                          {enRouteHasArrived
+                            ? 'Arrivé !'
+                            : `${Math.floor(enRouteEtaS / 60).toString().padStart(2, '0')}:${(enRouteEtaS % 60).toString().padStart(2, '0')}`}
+                        </Text>
+                        {!enRouteHasArrived && enRouteEtaS >= 60 && (
+                          <Text style={styles.matchedEtaSubLabel}>
+                            {`${Math.floor(enRouteEtaS / 60)} min restante${Math.floor(enRouteEtaS / 60) > 1 ? 's' : ''}`}
+                          </Text>
+                        )}
+                      </View>
+                      {(() => {
+                        const pct = Math.min(95, durationS > 0 ? ((durationS - enRouteEtaS) / durationS) * 95 : 0);
+                        return (
+                          <View style={styles.enRouteProgressContainer}>
+                            <View style={styles.enRouteProgressTrack}>
+                              <View style={[styles.enRouteProgressFill, { width: `${pct}%` as `${number}%` }]} />
+                            </View>
+                            <View style={[styles.enRouteMovingPin, { left: `${pct}%` as `${number}%` }]}>
+                              <View style={styles.enRouteMovingPinCircle}>
+                                <Icon name="user-pin" size={12} color="#000" />
+                              </View>
+                            </View>
+                            <View style={styles.enRouteEndPin}>
+                              <Icon name="destination-pin" size={18} color={colors.primary.main} />
+                            </View>
+                          </View>
+                        );
+                      })()}
+                    </View>
+                  )
+                ) : isMatched && matchedDriver ? (
+                  snap === 'mini' ? (
+                    <View style={styles.miniBody}>
+                      <View style={styles.miniMatchedLeft}>
+                        <View style={[styles.avatarCircle, styles.avatarCircleSm]}>
+                          <Text style={[styles.avatarText, styles.avatarTextSm]}>
+                            {getInitials(matchedDriver.name)}
+                          </Text>
+                        </View>
+                        <View style={styles.miniDestCol}>
+                          <Text style={styles.miniDestName} numberOfLines={1}>
+                            {matchedDriver.name}
+                          </Text>
+                          <Text style={styles.matchedDriverSub}>
+                            {hasArrived
+                              ? 'Conducteur arrivé'
+                              : etaS >= 60
+                                ? `${Math.floor(etaS / 60)} min`
+                                : 'Arrivée imminente'}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.matchedRating}>★ {matchedDriver.rating.toFixed(1)}</Text>
+                    </View>
+                  ) : hasArrived ? (
+                    <View style={[styles.searchingBody, { height: PEEK_HEIGHT - 20 - insets.bottom - spacing.md }]}>
+                      <View style={styles.matchedDriverRow}>
+                        <View style={styles.avatarCircle}>
+                          <Text style={styles.avatarText}>{getInitials(matchedDriver.name)}</Text>
+                        </View>
+                        <View style={styles.matchedDriverInfo}>
+                          <Text style={styles.matchedDriverName}>{matchedDriver.name}</Text>
+                          <Text style={styles.matchedDriverSub}>
+                            {matchedDriver.vehicleType} · {matchedDriver.vehiclePlate}
+                          </Text>
+                        </View>
+                        <Text style={styles.matchedRating}>★ {matchedDriver.rating.toFixed(1)}</Text>
+                      </View>
+                      <View style={styles.arrivedContainer}>
+                        <View style={styles.arrivedBadge}>
+                          <Text style={styles.arrivedBadgeText}>✓</Text>
+                        </View>
+                        <Text style={styles.arrivedTitle}>Conducteur arrivé</Text>
+                        <Text style={styles.arrivedSubtitle}>En attente de vous</Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={[styles.searchingBody, { height: PEEK_HEIGHT - 20 - insets.bottom - spacing.md }]}>
+                      <View style={styles.matchedDriverRow}>
+                        <View style={styles.avatarCircle}>
+                          <Text style={styles.avatarText}>{getInitials(matchedDriver.name)}</Text>
+                        </View>
+                        <View style={styles.matchedDriverInfo}>
+                          <Text style={styles.matchedDriverName}>{matchedDriver.name}</Text>
+                          <Text style={styles.matchedDriverSub}>
+                            {matchedDriver.vehicleType} · {matchedDriver.vehiclePlate}
+                          </Text>
+                        </View>
+                        <Text style={styles.matchedRating}>★ {matchedDriver.rating.toFixed(1)}</Text>
+                      </View>
+                      <View style={styles.matchedEtaBlock}>
+                        <Text style={styles.matchedEtaLabel}>Arrivée dans</Text>
+                        <Text style={styles.matchedEtaValue}>
+                          {etaS >= 60 ? `${Math.floor(etaS / 60)} min` : 'Arrivée imminente'}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.cancelBtn, isBusy && styles.cancelBtnDisabled]}
+                        onPress={() => { setCancelErr(null); setCancelFeeWarningOpen(true); }}
+                        disabled={isBusy}
+                      >
+                        <Text style={styles.cancelBtnText}>Annuler la course</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )
+                ) : snap === 'mini' ? (
+                  <View style={styles.miniBody}>
+                    <Pressable style={styles.miniDestArea} onPress={() => setSheetMode('search')}>
+                      <Icon name="map-pin" size={18} color={colors.primary.main} />
+                      <View style={styles.miniDestCol}>
+                        <Text style={styles.miniDestName} numberOfLines={1}>
+                          {destination?.name ?? destination?.address ?? 'Where to?'}
+                        </Text>
+                      </View>
+                    </Pressable>
+                    <View style={styles.miniActions}>
+                      <TouchableOpacity
+                        style={[styles.miniBookBtn, !canBook && styles.miniBookBtnDisabled]}
+                        onPress={onBookRide}
+                        disabled={!canBook || isBusy}
+                      >
+                        {isBusy ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <Text style={styles.miniBookBtnText}>Réserver</Text>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.miniCancelBtn}
+                        onPress={onCancelFromMini}
+                      >
+                        <Text style={styles.miniCancelBtnText}>Annuler</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 ) : (
                   <BookingModeContent
                     destination={destination}
@@ -484,7 +813,61 @@ export const BookingSheet = memo(function BookingSheet({
         </Animated.View>
       </GestureDetector>
 
-      <DriverReveal visible={isMatched} />
+      {cancelFeeWarningOpen && (
+        <View style={styles.confirmOverlay}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Annuler la course ?</Text>
+            <Text style={styles.confirmBody}>
+              Votre conducteur est en route — des frais d'annulation peuvent s'appliquer.
+            </Text>
+            <TouchableOpacity
+              style={styles.confirmBtn}
+              onPress={() => { setCancelFeeWarningOpen(false); setConfirmCancelOpen(true); }}
+            >
+              <Text style={styles.confirmBtnText}>Continuer l'annulation</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.confirmBtnSecondary}
+              onPress={() => setCancelFeeWarningOpen(false)}
+            >
+              <Text style={styles.confirmBtnSecondaryText}>Non, continuer la course</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {confirmCancelOpen && (
+        <View style={styles.confirmOverlay}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Annuler cette course ?</Text>
+            <Text style={styles.confirmBody}>
+              Votre demande sera supprimée et aucun conducteur ne pourra l'accepter.
+            </Text>
+            {cancelErr ? (
+              <Text style={styles.confirmErr}>{cancelErr}</Text>
+            ) : null}
+            <TouchableOpacity
+              style={[styles.confirmBtn, cancelling && styles.confirmBtnDisabled]}
+              onPress={() => { void handleConfirmCancel(); }}
+              disabled={cancelling}
+            >
+              {cancelling ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.confirmBtnText}>Oui, annuler</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.confirmBtnSecondary}
+              onPress={() => { setCancelErr(null); setConfirmCancelOpen(false); }}
+              disabled={cancelling}
+            >
+              <Text style={styles.confirmBtnSecondaryText}>Non, continuer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
     </>
   );
 });
@@ -507,8 +890,8 @@ const styles = StyleSheet.create({
     elevation: 16,
   },
   handleZone: {
-    paddingTop: 10,
-    paddingBottom: 6,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -523,14 +906,14 @@ const styles = StyleSheet.create({
   xBtn: {
     position: 'absolute',
     right: spacing.lg,
-    top: 6,
-    width: 28,
-    height: 28,
+    top: spacing.sm,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
   xBtnText: {
-    fontSize: 16,
+    fontSize: 24,
     color: colors.text.secondary,
     fontWeight: '500',
   },
@@ -539,12 +922,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // ── Mini state: condensed destination row ──
+  // ── Mini state: condensed destination + action buttons ──
   miniBody: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  miniDestArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   miniDestCol: {
@@ -554,6 +943,38 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text.primary,
     fontWeight: '600',
+  },
+  miniActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  miniBookBtn: {
+    backgroundColor: colors.primary.main,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+  },
+  miniBookBtnDisabled: {
+    opacity: 0.45,
+  },
+  miniBookBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  miniCancelBtn: {
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+  },
+  miniCancelBtnText: {
+    color: colors.text.secondary,
+    fontSize: 13,
   },
 
   // ── Peek / Full body ──
@@ -610,6 +1031,7 @@ const styles = StyleSheet.create({
   },
   bookBtn: {
     marginTop: spacing.md,
+    marginBottom: spacing.lg,
     backgroundColor: colors.primary.main,
     borderRadius: 12,
     paddingVertical: spacing.md,
@@ -620,16 +1042,33 @@ const styles = StyleSheet.create({
 
   // ── Searching ──
   searchingBody: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  searchingHeader: {
     gap: spacing.md,
+  },
+  searchingTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   searchingTitle: {
     ...typography.h3,
     color: colors.text.primary,
-    textAlign: 'center',
+    flex: 1,
+  },
+  searchingTimer: {
+    ...typography.body,
+    color: colors.text.tertiary,
+    fontVariant: ['tabular-nums'],
+  },
+  searchingCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.lg,
   },
   searchingSubtitle: {
     ...typography.body,
@@ -637,16 +1076,273 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cancelBtn: {
-    marginTop: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border.light,
+    borderWidth: 1.5,
+    borderColor: colors.primary.main,
     borderRadius: 12,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
     alignItems: 'center',
+    marginBottom: spacing.xs,
   },
   cancelBtnText: {
-    color: colors.text.secondary,
+    color: colors.primary.main,
     fontSize: 15,
+    fontWeight: '600',
+  },
+  cancelBtnDisabled: {
+    opacity: 0.5,
+  },
+
+  // ── Matched state ──
+  matchedDriverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary.main,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  matchedDriverInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  matchedDriverName: {
+    ...typography.body,
+    color: colors.text.primary,
+    fontWeight: '700',
+  },
+  matchedDriverSub: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  matchedRating: {
+    ...typography.body,
+    color: colors.primary.main,
+    fontWeight: '700',
+    flexShrink: 0,
+  },
+  matchedEtaBlock: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  matchedEtaLabel: {
+    ...typography.body,
+    color: colors.text.secondary,
+  },
+  matchedEtaValue: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: colors.text.primary,
+    letterSpacing: -0.5,
+    fontVariant: ['tabular-nums'],
+  },
+  matchedEtaSubLabel: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    marginTop: 2,
+  },
+
+  // ── Matched mini strip ──
+  miniMatchedLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  avatarCircleSm: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  avatarTextSm: {
+    fontSize: 14,
+  },
+
+  // ── Arrived state ──
+  arrivedContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  arrivedBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#22C55E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrivedBadgeText: {
+    fontSize: 28,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  arrivedTitle: {
+    ...typography.h3,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  arrivedSubtitle: {
+    ...typography.body,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+
+  // ── En-route mini strip ──
+  enRouteMiniWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+  },
+  enRouteProgressContainer: {
+    position: 'relative',
+    height: 28,
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  enRouteProgressTrack: {
+    position: 'absolute',
+    left: 0,
+    right: 24,
+    height: 4,
+    backgroundColor: colors.border.light,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  enRouteProgressFill: {
+    height: '100%' as const,
+    backgroundColor: colors.primary.main,
+    borderRadius: 2,
+  },
+  enRouteMovingPin: {
+    position: 'absolute',
+    marginLeft: -12,
+  },
+  enRouteMovingPinCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: colors.primary.main,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  enRouteEndPin: {
+    position: 'absolute',
+    right: 0,
+    top: 5,
+  },
+  enRouteMiniInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  enRouteMiniNameCol: {
+    flex: 1,
+    gap: 2,
+  },
+  enRouteMiniEtaCol: {
+    alignItems: 'center',
+    minWidth: 56,
+  },
+  enRouteMiniEtaValue: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.text.primary,
+    fontVariant: ['tabular-nums'],
+  },
+  enRouteMiniEtaLabel: {
+    fontSize: 10,
+    color: colors.text.secondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  enRouteDestRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
+  },
+  enRouteDestText: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    flex: 1,
+  },
+
+  // ── Cancel confirmation dialog ──
+  confirmOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+    zIndex: 100,
+  },
+  confirmCard: {
+    backgroundColor: colors.background.primary,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.sm,
+  },
+  confirmTitle: {
+    ...typography.h3,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  confirmBody: {
+    ...typography.body,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  confirmErr: {
+    ...typography.caption,
+    color: colors.error,
+    textAlign: 'center',
+  },
+  confirmBtn: {
+    backgroundColor: colors.error,
+    borderRadius: 12,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  confirmBtnDisabled: {
+    opacity: 0.6,
+  },
+  confirmBtnText: {
+    ...typography.body,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  confirmBtnSecondary: {
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  confirmBtnSecondaryText: {
+    ...typography.body,
+    color: colors.text.secondary,
   },
 });
