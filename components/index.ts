@@ -5,8 +5,8 @@
  */
 
 export { DriverMarkers } from './DriverMarkers';
-export { LocationModal, DestinationTip } from './LocationModal';
-export type { LocationModalProps, DestinationTipProps } from './LocationModal';
+export { DestinationTip } from './LocationModal';
+export type { DestinationTipProps } from './LocationModal';
 
 // Sidebar components
 export { MenuButton, SidebarToggleButton, SidebarMenuItem, SidebarContent } from './Sidebar';
@@ -18,3 +18,7 @@ export { LanguagePicker, type LanguagePickerProps } from './LanguagePicker';
 // Booking sheet
 export { BookingSheet } from './BookingSheet';
 export type { BookingSheetProps } from './BookingSheet';
+
+// Trip receipt
+export { TripReceipt } from './TripReceipt';
+export type { TripReceiptProps } from './TripReceipt';
