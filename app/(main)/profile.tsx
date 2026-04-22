@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, TouchableOpacity, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, useUser } from '@rentascooter/auth';
@@ -45,11 +45,31 @@ export default function ProfileScreen() {
   };
 
   const menuItems: ProfileMenuItem[] = [
-    { icon: 'credit-card', label: t('profile.payment_methods'), onPress: () => {} },
-    { icon: 'location', label: t('client.saved_places'), onPress: () => {} },
-    { icon: 'notifications', label: t('profile.notifications'), onPress: () => {} },
-    { icon: 'help-circle', label: t('profile.help_support'), onPress: () => {} },
-    { icon: 'shield', label: t('profile.privacy_policy'), onPress: () => {} },
+    {
+      icon: 'credit-card',
+      label: t('profile.payment_methods'),
+      onPress: () => Alert.alert(t('common.coming_soon')),
+    },
+    {
+      icon: 'location',
+      label: t('client.saved_places'),
+      onPress: () => Alert.alert(t('common.coming_soon')),
+    },
+    {
+      icon: 'notifications',
+      label: t('profile.notifications'),
+      onPress: () => router.push('/(main)/notifications'),
+    },
+    {
+      icon: 'help-circle',
+      label: t('profile.help_support'),
+      onPress: () => Linking.openURL('https://glidey.sn/help'),
+    },
+    {
+      icon: 'shield',
+      label: t('profile.privacy_policy'),
+      onPress: () => Linking.openURL('https://glidey.sn/privacy'),
+    },
   ];
 
   return (
