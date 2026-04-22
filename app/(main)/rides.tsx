@@ -24,6 +24,13 @@ export default function RidesScreen() {
   const { t } = useTranslation();
   const { rides, isLoading, error, refetch, isRefetching } = useRideHistory({ limit: 20 });
 
+  const handleRidePress = useCallback(
+    (rideId: string) => {
+      router.push(`/trip-receipt/${rideId}?entryPoint=history` as never);
+    },
+    [router]
+  );
+
   const handleBackPress = useCallback(() => {
     router.back();
   }, [router]);
@@ -43,6 +50,7 @@ export default function RidesScreen() {
       const rating = item.rating?.clientToDriver ?? item.driverInfo?.rating ?? 0;
 
       return (
+        <TouchableOpacity onPress={() => handleRidePress(item.id)} activeOpacity={0.7}>
         <Card variant="elevated" padding="medium" style={styles.rideCard}>
           <View style={styles.rideHeader}>
             <Text style={styles.rideDate}>{date} at {time}</Text>
@@ -75,9 +83,10 @@ export default function RidesScreen() {
             </Text>
           </View>
         </Card>
+        </TouchableOpacity>
       );
     },
-    [t]
+    [t, handleRidePress]
   );
 
   return (
