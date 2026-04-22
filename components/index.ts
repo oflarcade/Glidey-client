@@ -22,3 +22,7 @@ export type { BookingSheetProps } from './BookingSheet';
 // Trip receipt
 export { TripReceipt } from './TripReceipt';
 export type { TripReceiptProps } from './TripReceipt';
+
+// Rating modal
+export { RatingModal } from './RatingModal';
+export type { RatingModalProps } from './RatingModal';

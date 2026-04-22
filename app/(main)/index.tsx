@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +13,7 @@ import {
   useLocationService,
   UserPositionButton,
   DestinationPin,
+  rem,
 } from '@rentascooter/ui';
 import { colors, spacing } from '@rentascooter/ui/theme';
 import { SidebarToggleButton } from '@/components/Sidebar';
@@ -26,7 +28,7 @@ import { getRouteLineCoordinates } from '@/utils/routeLineCoordinates';
 import { DriverMarkers } from '@/components/DriverMarkers';
 import { DestinationTip } from '@/components/LocationModal';
 import { BookingSheet } from '@/components/BookingSheet';
-import { animateToLocation } from '@/utils/mapAnimations';
+import { animateToLocation, animateToDestination } from '@/utils/mapAnimations';
 import { getMockDriversNear } from '@/utils/mockDrivers';
 import { useUser } from '@rentascooter/auth';
 import { useRideStore } from '@rentascooter/shared';
@@ -70,16 +72,43 @@ export default function ClientMainScreen() {
   const sheetMode = useUIStore(selectSheetMode);
   const setSheetMode = useUIStore((s) => s.setSheetMode);
 
+  const router = useRouter();
+
   // Ride store state for BookingSheet
   const rideState = useRideStore((s) => s.rideState);
   const rideId = useRideStore((s) => s.rideId);
+  const matchedDriver = useRideStore((s) => s.matchedDriver);
+  const resetRideStore = useRideStore((s) => s.reset);
 
-  // Sync sheetMode with rideState transitions
+  // Guard: navigate to receipt screen exactly once per completion event
+  const navigatedToReceiptRef = useRef(false);
+
+  // Auto-open in search mode on mount
   useEffect(() => {
-    if (rideState === 'searching' || rideState === 'matched') {
+    setSheetMode('search');
+  }, [setSheetMode]);
+
+  // Sync sheetMode with rideState transitions (T-131)
+  useEffect(() => {
+    if (rideState === 'searching' && sheetMode === 'booking') {
       setSheetMode('matching');
+    } else if (rideState === 'idle') {
+      // Reset sheet on any return to idle (covers post-ride rating flow reset)
+      if (sheetMode !== 'search' && sheetMode !== 'idle') {
+        setSheetMode('search');
+      }
+      navigatedToReceiptRef.current = false;
+    } else if (rideState === 'completed') {
+      // Navigate to receipt screen exactly once; rideStore reset deferred to T-010
+      if (rideId && !navigatedToReceiptRef.current) {
+        navigatedToReceiptRef.current = true;
+        router.push(`/trip-receipt/${rideId}?entryPoint=completion` as never);
+      }
+    } else if (rideState === 'cancelled' || rideState === 'failed') {
+      resetRideStore();
+      setSheetMode('search');
     }
-  }, [rideState, setSheetMode]);
+  }, [rideState, sheetMode, setSheetMode, resetRideStore, rideId, router]);
 
   // Camera ref for programmatic map control
   const cameraRef = useRef<MapboxGL.Camera>(null);
@@ -135,6 +164,20 @@ export default function ClientMainScreen() {
   const pickup: GeoPoint | null = location
     ? { latitude: location.latitude, longitude: location.longitude }
     : null;
+
+  // Camera flies to pickup position when driver matches
+  useEffect(() => {
+    if (rideState !== 'matched' || !pickup) return;
+    void animateToLocation(cameraRef, { latitude: pickup.latitude, longitude: pickup.longitude });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rideState]);
+
+  // Camera bounds-fit on pickup_en_route entry: frame pickup → destination
+  useEffect(() => {
+    if (rideState !== 'pickup_en_route' || !pickup || !selectedDestination) return;
+    void animateToDestination(cameraRef, selectedDestination, pickup);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rideState]);
 
   const {
     fareEstimates,
@@ -246,6 +289,26 @@ export default function ClientMainScreen() {
   }, [setSheetMode]);
 
   /**
+   * Cancel from mini booking state — clears destination and returns camera to user position.
+   */
+  const handleMiniCancel = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedDestination(null);
+    setSheetMode('search');
+    if (location && cameraRef.current) {
+      try {
+        const { resetCameraToUser } = await import('@/utils/mapAnimations');
+        await resetCameraToUser(cameraRef, {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        });
+      } catch (error) {
+        console.error('[ClientMainScreen] Failed to reset camera on mini cancel:', error);
+      }
+    }
+  }, [location, setSheetMode]);
+
+  /**
    * Handle clearing destination
    */
   const handleClearDestination = useCallback(async () => {
@@ -316,7 +379,7 @@ export default function ClientMainScreen() {
     isServiceEnabled !== false && permissionStatus === 'denied';
 
   // Top bar height for banner positioning
-  const topBarOffset = insets.top + 56 + spacing.sm;
+  const topBarOffset = insets.top + rem(1.5) + spacing.sm;
 
   // Destination tip offset (below modal when open)
   const destinationTipOffset = sheetMode === 'search' ? topBarOffset + 80 : topBarOffset;
@@ -432,6 +495,8 @@ export default function ClientMainScreen() {
         onCancel={handleBookingCancel}
         onDismiss={handleClearDestination}
         onDismissToSearch={handleBookingDismissToSearch}
+        onCancelFromMini={handleMiniCancel}
+        matchedDriver={matchedDriver}
         userName={userName}
         onConfirmDestination={handleDestinationSelect}
       />
