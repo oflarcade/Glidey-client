@@ -66,6 +66,19 @@ export async function persistLocale(locale: SupportedLocale): Promise<void> {
   }
 }
 
+// Subscription mechanism so all useTranslation instances re-render on locale change
+type LocaleListener = () => void;
+const localeListeners = new Set<LocaleListener>();
+
+export function subscribeToLocale(listener: LocaleListener): () => void {
+  localeListeners.add(listener);
+  return () => localeListeners.delete(listener);
+}
+
+function notifyLocaleListeners(): void {
+  localeListeners.forEach((l) => l());
+}
+
 /**
  * Initialize the i18n instance with the appropriate locale
  * Priority: persisted preference > device locale > default (en)
@@ -73,15 +86,17 @@ export async function persistLocale(locale: SupportedLocale): Promise<void> {
 export async function initializeI18n(): Promise<SupportedLocale> {
   // First, check for persisted preference
   const persistedLocale = await getPersistedLocale();
-  
+
   if (persistedLocale) {
     i18n.locale = persistedLocale;
+    notifyLocaleListeners();
     return persistedLocale;
   }
-  
+
   // Fall back to device locale detection (do not persist; only persist on user choice)
   const deviceLocale = detectDeviceLocale();
   i18n.locale = deviceLocale;
+  notifyLocaleListeners();
 
   return deviceLocale;
 }
@@ -94,8 +109,9 @@ export async function setLocale(locale: SupportedLocale): Promise<void> {
     console.warn(`Unsupported locale: ${locale}. Falling back to ${DEFAULT_LOCALE}`);
     locale = DEFAULT_LOCALE;
   }
-  
+
   i18n.locale = locale;
+  notifyLocaleListeners();
   await persistLocale(locale);
 }
 

@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useSyncExternalStore, useEffect, useCallback, useState } from 'react';
 import {
-  i18n,
   initializeI18n,
   setLocale as setI18nLocale,
   getCurrentLocale,
+  subscribeToLocale,
   translate,
   type SupportedLocale,
   SUPPORTED_LOCALES,
@@ -59,7 +59,9 @@ export interface UseTranslationReturn {
  * ```
  */
 export function useTranslation(): UseTranslationReturn {
-  const [locale, setLocaleState] = useState<SupportedLocale>(getCurrentLocale());
+  // useSyncExternalStore ensures every hook instance re-renders when locale changes,
+  // regardless of which component triggered the change.
+  const locale = useSyncExternalStore(subscribeToLocale, getCurrentLocale, getCurrentLocale);
   const [isReady, setIsReady] = useState(false);
 
   // Initialize i18n on mount
@@ -67,9 +69,8 @@ export function useTranslation(): UseTranslationReturn {
     let mounted = true;
 
     async function init() {
-      const initialLocale = await initializeI18n();
+      await initializeI18n();
       if (mounted) {
-        setLocaleState(initialLocale);
         setIsReady(true);
       }
     }
@@ -90,10 +91,9 @@ export function useTranslation(): UseTranslationReturn {
     [locale] // Re-create when locale changes to trigger re-render
   );
 
-  // Set locale function
+  // Set locale function — notifyLocaleListeners() is called inside setI18nLocale
   const setLocale = useCallback(async (newLocale: SupportedLocale) => {
     await setI18nLocale(newLocale);
-    setLocaleState(newLocale);
   }, []);
 
   return {
