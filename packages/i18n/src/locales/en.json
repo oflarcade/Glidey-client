@@ -23,7 +23,8 @@
     "language": "Language",
     "french": "French",
     "english": "English",
-    "or": "or"
+    "or": "or",
+    "not_now": "Not now"
   },
   "tabs": {
     "home": "Home",
@@ -300,5 +301,62 @@
     "amount_paid": "Amount Paid",
     "history": "History",
     "invite_friends": "Invite Friends"
+  },
+  "settings": {
+    "notifications": "Notifications",
+    "push_notifications": "Push Notifications",
+    "email_notifications": "Email Notifications",
+    "privacy": "Privacy",
+    "location_sharing": "Location Sharing",
+    "privacy_policy": "Privacy Policy",
+    "general": "General",
+    "language": "Language",
+    "help_support": "Help & Support",
+    "about": "About",
+    "account": "Account",
+    "delete_account": "Delete Account"
+  },
+  "location": {
+    "disabled": "Location Disabled",
+    "tap_to_enable": "Tap to enable",
+    "enable_services": "Enable Location Services",
+    "open_settings": "Open Settings",
+    "services_description": "Location services are needed to find nearby scooters and track your ride."
+  },
+  "booking": {
+    "search_welcome": "Welcome, {{name}}",
+    "search_placeholder": "Where to go?",
+    "vehicle_type_title": "Vehicle Type",
+    "fare_calculating": "Calculating fare…",
+    "book_now": "Book now",
+    "reserve_short": "Book",
+    "no_drivers_available": "No drivers available",
+    "all_drivers_busy": "All drivers are busy. Try again in a few minutes.",
+    "searching_for_driver": "Searching for a driver…",
+    "attempt_1_of_3": "Attempt 1 of 3",
+    "attempt_2_of_3": "Attempt 2 of 3",
+    "last_attempt": "Last attempt",
+    "cancel_search": "Cancel search",
+    "arrived": "Arrived",
+    "arrived_excl": "Arrived!",
+    "minutes_remaining": {
+      "one": "{{count}} min left",
+      "other": "{{count}} min left"
+    },
+    "eta_destination": "ETA to destination",
+    "driver_arrived": "Driver arrived",
+    "imminent_arrival": "Imminent arrival",
+    "arriving_in": "Arriving in",
+    "waiting_for_you": "Waiting for you",
+    "cancel_trip": "Cancel trip",
+    "cancel_error": "Unable to cancel. Please try again.",
+    "cancel_trip_confirm_title": "Cancel trip?",
+    "cancel_fee_warning": "Your driver is en route — cancellation fees may apply.",
+    "continue_cancellation": "Continue with cancellation",
+    "no_continue_trip": "No, continue trip",
+    "cancel_this_trip_title": "Cancel this trip?",
+    "cancel_search_confirm_body": "Your request will be deleted and no driver will be able to accept it.",
+    "yes_cancel": "Yes, cancel",
+    "no_continue": "No, continue"
   }
 }

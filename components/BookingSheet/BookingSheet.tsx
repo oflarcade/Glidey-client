@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
 import { RetryTimeline, Icon, rem } from '@rentascooter/ui';
 import { ScooterCarousel } from '@/components/ScooterCarousel/ScooterCarousel';
+import { useTranslation } from '@rentascooter/i18n';
 import { useMatching } from '@/hooks/useMatching';
 import { useUIStore, selectSheetMode, useRideStore } from '@rentascooter/shared';
 import type { FareEstimateItem, Location, MatchedDriver } from '@rentascooter/shared';
@@ -83,10 +84,11 @@ function BookingModeContent({
   onBookRide,
   onTapDestination,
 }: BookingModeContentProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.body}>
       <Pressable style={styles.row} onPress={onTapDestination}>
-        <Text style={styles.rowLabel}>Destination</Text>
+        <Text style={styles.rowLabel}>{t('client.destination')}</Text>
         <View style={styles.rowValueCol}>
           {destination?.name ? (
             <Text style={styles.rowValue} numberOfLines={1}>{destination.name}</Text>
@@ -100,7 +102,7 @@ function BookingModeContent({
 
       {distanceM > 0 && (
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Distance</Text>
+          <Text style={styles.rowLabel}>{t('driver.distance')}</Text>
           <Text style={styles.rowValue}>{(distanceM / 1000).toFixed(1)} km</Text>
         </View>
       )}
@@ -109,7 +111,7 @@ function BookingModeContent({
         {isFareLoading ? (
           <View style={styles.fareLoading}>
             <ActivityIndicator size="small" color={colors.primary.main} />
-            <Text style={styles.fareLoadingText}>Calcul du tarif…</Text>
+            <Text style={styles.fareLoadingText}>{t('booking.fare_calculating')}</Text>
           </View>
         ) : fareError ? (
           <Text style={styles.errorText}>{fareError}</Text>
@@ -118,14 +120,14 @@ function BookingModeContent({
             options={carouselOptions}
             selectedId={selectedVehicleTypeId}
             onSelect={onSelectVehicleType}
-            title="Type de véhicule"
+            title={t('booking.vehicle_type_title')}
           />
         ) : null}
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.rowLabel}>Paiement</Text>
-        <Text style={styles.rowValue}>Espèces</Text>
+        <Text style={styles.rowLabel}>{t('client.payment')}</Text>
+        <Text style={styles.rowValue}>{t('client.cash')}</Text>
       </View>
 
       <TouchableOpacity
@@ -136,7 +138,7 @@ function BookingModeContent({
         {isBusy ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.bookBtnText}>Réserver maintenant</Text>
+          <Text style={styles.bookBtnText}>{t('booking.book_now')}</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -192,6 +194,7 @@ export const BookingSheet = memo(function BookingSheet({
   userName,
   onConfirmDestination,
 }: BookingSheetProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const screenHeight = Dimensions.get('window').height;
   // Lowest translateY allowed: sheet top clears header bottom edge + rounded corner buffer
@@ -207,6 +210,7 @@ export const BookingSheet = memo(function BookingSheet({
   const [cancelErr, setCancelErr] = useState<string | null>(null);
   const [hasArrived, setHasArrived] = useState(false);
   const [enRouteEtaS, setEnRouteEtaS] = useState(0);
+  const [enRouteTotalS, setEnRouteTotalS] = useState(0);
   const [enRouteHasArrived, setEnRouteHasArrived] = useState(false);
   const enRouteInitialized = useRef(false);
   const translateY = useSharedValue(FULL_HEIGHT);
@@ -274,7 +278,7 @@ export const BookingSheet = memo(function BookingSheet({
       await onCancel();
       setConfirmCancelOpen(false);
     } catch (e: unknown) {
-      setCancelErr((e as { message?: string })?.message ?? 'Impossible d\'annuler. Réessayez.');
+      setCancelErr((e as { message?: string })?.message ?? t('booking.cancel_error'));
     } finally {
       setCancelling(false);
     }
@@ -443,10 +447,12 @@ export const BookingSheet = memo(function BookingSheet({
     return () => clearTimeout(id);
   }, [hasArrived, isMatched, transition]);
 
-  // Auto-snap to mini and lock gesture when entering pickup_en_route
+  // Show expanded en-route view on entry so the ETA timer is visible; lock gesture to peek↔mini.
   useEffect(() => {
     if (isEnRoute) {
-      setSnap('mini');
+      setSnap('peek');
+      snapLevel.value = 1;
+      translateY.value = withSpring(FULL_HEIGHT - PEEK_HEIGHT, SPRING);
       isBookingModeShared.value = 1;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -462,7 +468,9 @@ export const BookingSheet = memo(function BookingSheet({
     }
     enRouteInitialized.current = true;
     const seedS = durationS > 0 ? durationS : 300;
-    setEnRouteEtaS(__DEV__ ? Math.min(seedS, 300) : seedS);
+    const actualSeedS = __DEV__ ? Math.min(seedS, 300) : seedS;
+    setEnRouteTotalS(actualSeedS);
+    setEnRouteEtaS(actualSeedS);
     const id = setInterval(() => setEnRouteEtaS((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
   }, [isEnRoute, durationS]);
@@ -548,12 +556,12 @@ export const BookingSheet = memo(function BookingSheet({
                     {inFallback ? (
                       <>
                         <View style={styles.searchingHeader}>
-                          <Text style={styles.searchingTitle}>Aucun conducteur disponible</Text>
+                          <Text style={styles.searchingTitle}>{t('booking.no_drivers_available')}</Text>
                         </View>
                         <View style={styles.searchingCenter}>
                           <ActivityIndicator size="large" color={colors.text.secondary} />
                           <Text style={styles.searchingSubtitle}>
-                            Tous les conducteurs sont occupés. Réessayez dans quelques minutes.
+                            {t('booking.all_drivers_busy')}
                           </Text>
                         </View>
                       </>
@@ -561,7 +569,7 @@ export const BookingSheet = memo(function BookingSheet({
                       <>
                         <View style={styles.searchingHeader}>
                           <View style={styles.searchingTitleRow}>
-                            <Text style={styles.searchingTitle}>Recherche d'un conducteur…</Text>
+                            <Text style={styles.searchingTitle}>{t('booking.searching_for_driver')}</Text>
                             <Text style={styles.searchingTimer}>{elapsedLabel}</Text>
                           </View>
                           <RetryTimeline
@@ -573,10 +581,10 @@ export const BookingSheet = memo(function BookingSheet({
                           <ActivityIndicator size="large" color={colors.primary.main} />
                           <Text style={styles.searchingSubtitle}>
                             {completedAttempts === 0
-                              ? 'Tentative 1 sur 3'
+                              ? t('booking.attempt_1_of_3')
                               : completedAttempts === 1
-                                ? 'Tentative 2 sur 3'
-                                : 'Dernière tentative'}
+                                ? t('booking.attempt_2_of_3')
+                                : t('booking.last_attempt')}
                           </Text>
                         </View>
                       </>
@@ -586,14 +594,14 @@ export const BookingSheet = memo(function BookingSheet({
                       onPress={() => { setCancelErr(null); setConfirmCancelOpen(true); }}
                       disabled={isBusy}
                     >
-                      <Text style={styles.cancelBtnText}>Annuler la recherche</Text>
+                      <Text style={styles.cancelBtnText}>{t('booking.cancel_search')}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : isEnRoute && matchedDriver ? (
                   snap === 'mini' ? (
                     <View style={styles.enRouteMiniWrap}>
                       {(() => {
-                        const pct = Math.min(95, durationS > 0 ? ((durationS - enRouteEtaS) / durationS) * 95 : 0);
+                        const pct = Math.min(95, enRouteTotalS > 0 ? ((enRouteTotalS - enRouteEtaS) / enRouteTotalS) * 95 : 0);
                         return (
                           <View style={styles.enRouteProgressContainer}>
                             <View style={styles.enRouteProgressTrack}>
@@ -625,7 +633,7 @@ export const BookingSheet = memo(function BookingSheet({
                         <View style={styles.enRouteMiniEtaCol}>
                           <Text style={styles.enRouteMiniEtaValue}>
                             {enRouteHasArrived
-                              ? 'Arrivé'
+                              ? t('booking.arrived')
                               : `${Math.floor(enRouteEtaS / 60).toString().padStart(2, '0')}:${(enRouteEtaS % 60).toString().padStart(2, '0')}`}
                           </Text>
                           <Text style={styles.enRouteMiniEtaLabel}>ETA</Text>
@@ -655,20 +663,20 @@ export const BookingSheet = memo(function BookingSheet({
                         </View>
                       )}
                       <View style={styles.matchedEtaBlock}>
-                        <Text style={styles.matchedEtaLabel}>ETA à destination</Text>
+                        <Text style={styles.matchedEtaLabel}>{t('booking.eta_destination')}</Text>
                         <Text style={styles.matchedEtaValue}>
                           {enRouteHasArrived
-                            ? 'Arrivé !'
+                            ? t('booking.arrived_excl')
                             : `${Math.floor(enRouteEtaS / 60).toString().padStart(2, '0')}:${(enRouteEtaS % 60).toString().padStart(2, '0')}`}
                         </Text>
                         {!enRouteHasArrived && enRouteEtaS >= 60 && (
                           <Text style={styles.matchedEtaSubLabel}>
-                            {`${Math.floor(enRouteEtaS / 60)} min restante${Math.floor(enRouteEtaS / 60) > 1 ? 's' : ''}`}
+                            {t('booking.minutes_remaining', { count: Math.floor(enRouteEtaS / 60) })}
                           </Text>
                         )}
                       </View>
                       {(() => {
-                        const pct = Math.min(95, durationS > 0 ? ((durationS - enRouteEtaS) / durationS) * 95 : 0);
+                        const pct = Math.min(95, enRouteTotalS > 0 ? ((enRouteTotalS - enRouteEtaS) / enRouteTotalS) * 95 : 0);
                         return (
                           <View style={styles.enRouteProgressContainer}>
                             <View style={styles.enRouteProgressTrack}>
@@ -702,10 +710,10 @@ export const BookingSheet = memo(function BookingSheet({
                           </Text>
                           <Text style={styles.matchedDriverSub}>
                             {hasArrived
-                              ? 'Conducteur arrivé'
+                              ? t('booking.driver_arrived')
                               : etaS >= 60
                                 ? `${Math.floor(etaS / 60)} min`
-                                : 'Arrivée imminente'}
+                                : t('booking.imminent_arrival')}
                           </Text>
                         </View>
                       </View>
@@ -729,8 +737,8 @@ export const BookingSheet = memo(function BookingSheet({
                         <View style={styles.arrivedBadge}>
                           <Text style={styles.arrivedBadgeText}>✓</Text>
                         </View>
-                        <Text style={styles.arrivedTitle}>Conducteur arrivé</Text>
-                        <Text style={styles.arrivedSubtitle}>En attente de vous</Text>
+                        <Text style={styles.arrivedTitle}>{t('booking.driver_arrived')}</Text>
+                        <Text style={styles.arrivedSubtitle}>{t('booking.waiting_for_you')}</Text>
                       </View>
                     </View>
                   ) : (
@@ -748,9 +756,9 @@ export const BookingSheet = memo(function BookingSheet({
                         <Text style={styles.matchedRating}>★ {matchedDriver.rating.toFixed(1)}</Text>
                       </View>
                       <View style={styles.matchedEtaBlock}>
-                        <Text style={styles.matchedEtaLabel}>Arrivée dans</Text>
+                        <Text style={styles.matchedEtaLabel}>{t('booking.arriving_in')}</Text>
                         <Text style={styles.matchedEtaValue}>
-                          {etaS >= 60 ? `${Math.floor(etaS / 60)} min` : 'Arrivée imminente'}
+                          {etaS >= 60 ? `${Math.floor(etaS / 60)} min` : t('booking.imminent_arrival')}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -758,7 +766,7 @@ export const BookingSheet = memo(function BookingSheet({
                         onPress={() => { setCancelErr(null); setCancelFeeWarningOpen(true); }}
                         disabled={isBusy}
                       >
-                        <Text style={styles.cancelBtnText}>Annuler la course</Text>
+                        <Text style={styles.cancelBtnText}>{t('booking.cancel_trip')}</Text>
                       </TouchableOpacity>
                     </View>
                   )
@@ -768,7 +776,7 @@ export const BookingSheet = memo(function BookingSheet({
                       <Icon name="map-pin" size={18} color={colors.primary.main} />
                       <View style={styles.miniDestCol}>
                         <Text style={styles.miniDestName} numberOfLines={1}>
-                          {destination?.name ?? destination?.address ?? 'Where to?'}
+                          {destination?.name ?? destination?.address ?? t('client.where_to')}
                         </Text>
                       </View>
                     </Pressable>
@@ -781,14 +789,14 @@ export const BookingSheet = memo(function BookingSheet({
                         {isBusy ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
-                          <Text style={styles.miniBookBtnText}>Réserver</Text>
+                          <Text style={styles.miniBookBtnText}>{t('booking.reserve_short')}</Text>
                         )}
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.miniCancelBtn}
                         onPress={onCancelFromMini}
                       >
-                        <Text style={styles.miniCancelBtnText}>Annuler</Text>
+                        <Text style={styles.miniCancelBtnText}>{t('common.cancel')}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -816,21 +824,21 @@ export const BookingSheet = memo(function BookingSheet({
       {cancelFeeWarningOpen && (
         <View style={styles.confirmOverlay}>
           <View style={styles.confirmCard}>
-            <Text style={styles.confirmTitle}>Annuler la course ?</Text>
+            <Text style={styles.confirmTitle}>{t('booking.cancel_trip_confirm_title')}</Text>
             <Text style={styles.confirmBody}>
-              Votre conducteur est en route — des frais d'annulation peuvent s'appliquer.
+              {t('booking.cancel_fee_warning')}
             </Text>
             <TouchableOpacity
               style={styles.confirmBtn}
               onPress={() => { setCancelFeeWarningOpen(false); setConfirmCancelOpen(true); }}
             >
-              <Text style={styles.confirmBtnText}>Continuer l'annulation</Text>
+              <Text style={styles.confirmBtnText}>{t('booking.continue_cancellation')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.confirmBtnSecondary}
               onPress={() => setCancelFeeWarningOpen(false)}
             >
-              <Text style={styles.confirmBtnSecondaryText}>Non, continuer la course</Text>
+              <Text style={styles.confirmBtnSecondaryText}>{t('booking.no_continue_trip')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -839,9 +847,9 @@ export const BookingSheet = memo(function BookingSheet({
       {confirmCancelOpen && (
         <View style={styles.confirmOverlay}>
           <View style={styles.confirmCard}>
-            <Text style={styles.confirmTitle}>Annuler cette course ?</Text>
+            <Text style={styles.confirmTitle}>{t('booking.cancel_this_trip_title')}</Text>
             <Text style={styles.confirmBody}>
-              Votre demande sera supprimée et aucun conducteur ne pourra l'accepter.
+              {t('booking.cancel_search_confirm_body')}
             </Text>
             {cancelErr ? (
               <Text style={styles.confirmErr}>{cancelErr}</Text>
@@ -854,7 +862,7 @@ export const BookingSheet = memo(function BookingSheet({
               {cancelling ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.confirmBtnText}>Oui, annuler</Text>
+                <Text style={styles.confirmBtnText}>{t('booking.yes_cancel')}</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -862,7 +870,7 @@ export const BookingSheet = memo(function BookingSheet({
               onPress={() => { setCancelErr(null); setConfirmCancelOpen(false); }}
               disabled={cancelling}
             >
-              <Text style={styles.confirmBtnSecondaryText}>Non, continuer</Text>
+              <Text style={styles.confirmBtnSecondaryText}>{t('booking.no_continue')}</Text>
             </TouchableOpacity>
           </View>
         </View>

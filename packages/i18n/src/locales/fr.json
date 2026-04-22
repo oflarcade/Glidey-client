@@ -23,7 +23,8 @@
     "language": "Langue",
     "french": "Français",
     "english": "Anglais",
-    "or": "ou"
+    "or": "ou",
+    "not_now": "Pas maintenant"
   },
   "tabs": {
     "home": "Accueil",
@@ -54,6 +55,7 @@
     "privacy_policy": "Politique de confidentialité",
     "phone_not_verified": "Téléphone non vérifié",
     "tap_to_verify": "Appuyez pour vérifier",
+    "phone_verified_placeholder": "Téléphone vérifié",
     "logout_confirm": "Êtes-vous sûr de vouloir vous déconnecter ?",
     "version": "Version"
   },
@@ -299,5 +301,62 @@
     "amount_paid": "Montant payé",
     "history": "Historique",
     "invite_friends": "Inviter des amis"
+  },
+  "settings": {
+    "notifications": "Notifications",
+    "push_notifications": "Notifications push",
+    "email_notifications": "Notifications par e-mail",
+    "privacy": "Confidentialité",
+    "location_sharing": "Partage de localisation",
+    "privacy_policy": "Politique de confidentialité",
+    "general": "Général",
+    "language": "Langue",
+    "help_support": "Aide et support",
+    "about": "À propos",
+    "account": "Compte",
+    "delete_account": "Supprimer le compte"
+  },
+  "location": {
+    "disabled": "Localisation désactivée",
+    "tap_to_enable": "Appuyez pour activer",
+    "enable_services": "Activer les services de localisation",
+    "open_settings": "Ouvrir les paramètres",
+    "services_description": "Les services de localisation sont nécessaires pour trouver les scooters à proximité et suivre votre trajet."
+  },
+  "booking": {
+    "search_welcome": "Bienvenue, {{name}}",
+    "search_placeholder": "Où aller ?",
+    "vehicle_type_title": "Type de véhicule",
+    "fare_calculating": "Calcul du tarif…",
+    "book_now": "Réserver maintenant",
+    "reserve_short": "Réserver",
+    "no_drivers_available": "Aucun conducteur disponible",
+    "all_drivers_busy": "Tous les conducteurs sont occupés. Réessayez dans quelques minutes.",
+    "searching_for_driver": "Recherche d'un conducteur…",
+    "attempt_1_of_3": "Tentative 1 sur 3",
+    "attempt_2_of_3": "Tentative 2 sur 3",
+    "last_attempt": "Dernière tentative",
+    "cancel_search": "Annuler la recherche",
+    "arrived": "Arrivé",
+    "arrived_excl": "Arrivé !",
+    "minutes_remaining": {
+      "one": "{{count}} min restante",
+      "other": "{{count}} min restantes"
+    },
+    "eta_destination": "ETA à destination",
+    "driver_arrived": "Conducteur arrivé",
+    "imminent_arrival": "Arrivée imminente",
+    "arriving_in": "Arrivée dans",
+    "waiting_for_you": "En attente de vous",
+    "cancel_trip": "Annuler la course",
+    "cancel_error": "Impossible d'annuler. Réessayez.",
+    "cancel_trip_confirm_title": "Annuler la course ?",
+    "cancel_fee_warning": "Votre conducteur est en route — des frais d'annulation peuvent s'appliquer.",
+    "continue_cancellation": "Continuer l'annulation",
+    "no_continue_trip": "Non, continuer la course",
+    "cancel_this_trip_title": "Annuler cette course ?",
+    "cancel_search_confirm_body": "Votre demande sera supprimée et aucun conducteur ne pourra l'accepter.",
+    "yes_cancel": "Oui, annuler",
+    "no_continue": "Non, continuer"
   }
 }

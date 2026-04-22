@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from '@rentascooter/i18n';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
 import type { Location, Suggestion } from '@rentascooter/shared';
 import { useUIStore, selectSheetMode } from '@rentascooter/shared';
@@ -18,6 +19,7 @@ export const SearchModeContent = memo(function SearchModeContent({
   userName,
   onConfirmDestination,
 }: SearchModeContentProps) {
+  const { t } = useTranslation();
   const searchInputRef = useRef<SearchInputRef>(null);
   const scrollInProgressRef = useRef(false);
   const scrollEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -111,7 +113,7 @@ export const SearchModeContent = memo(function SearchModeContent({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Welcome, {userName}</Text>
+        <Text style={styles.title}>{t('booking.search_welcome', { name: userName })}</Text>
       </View>
 
       <SearchInput
@@ -120,7 +122,7 @@ export const SearchModeContent = memo(function SearchModeContent({
         onChangeText={handleSearchChange}
         onFocus={handleSearchFocus}
         scrollInProgressRef={scrollInProgressRef}
-        placeholder="Where to go?"
+        placeholder={t('booking.search_placeholder')}
         autoFocus={false}
         testID="search-mode-input"
       />
