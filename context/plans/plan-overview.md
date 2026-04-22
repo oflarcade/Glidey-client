@@ -9,4 +9,4 @@ last_edited: "2026-04-19"
 | Site | File | Tasks | Done | Status |
 |------|------|-------|------|--------|
 
-No build sites yet. Run `/ck:map` to generate one.
+| trip-receipt-rating | build-site-trip-receipt-rating.md | 10 | 10 | DONE |

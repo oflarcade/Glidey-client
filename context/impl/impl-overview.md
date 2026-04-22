@@ -14,7 +14,8 @@ last_edited: "2026-04-19"
 | route-directions | 7 | 7 | DONE |
 | booking-flow | 36 | 36 | DONE |
 | booking-sheet-ux | 9 | 9 | DONE |
-| **Total** | **86** | **86** | **Phase 2 complete** |
+| trip-receipt-rating | 10 | 10 | DONE |
+| **Total** | **96** | **96** | **Phase 4 complete** |
 
 ## Notes
 - T-083 completed 2026-04-19: on-device smoke test passed. 3 bugs fixed during QA (ATS Info.plist, address/formattedAddress mapping, lat-lng/latitude-longitude mapping). See impl-api-client.md for details.
