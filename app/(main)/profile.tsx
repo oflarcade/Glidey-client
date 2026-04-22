@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, useUser } from '@rentascooter/auth';
 import { useTranslation } from '@rentascooter/i18n';
 import { Avatar, Card, Badge, Icon, TopBar, type IconName } from '@rentascooter/ui';
-import { LanguagePicker } from '@/components/LanguagePicker';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
 import { useCallback } from 'react';
 
@@ -120,8 +119,6 @@ export default function ProfileScreen() {
               <Icon name="edit" size={16} color={colors.text.tertiary} />
             </View>
           )}
-
-          <LanguagePicker />
         </View>
 
         {/* Menu Items */}
