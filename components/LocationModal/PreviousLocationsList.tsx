@@ -15,6 +15,7 @@ import React, { memo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Keyboard, Platform } from 'react-native';
 import { Icon } from '@rentascooter/ui';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
+import { useTranslation } from '@rentascooter/i18n';
 import type { Location } from '@rentascooter/shared';
 import { LocationRow } from './LocationRow';
 
@@ -35,15 +36,15 @@ export const PreviousLocationsList = memo(function PreviousLocationsList({
   onScrollStart,
   testID = 'previous-locations-list',
 }: PreviousLocationsListProps) {
+  const { t } = useTranslation();
+
   // Empty state
   if (locations.length === 0) {
     return (
       <View style={styles.emptyContainer} testID={`${testID}-empty`}>
         <Icon name="history" size={48} color={colors.icon.default} />
-        <Text style={styles.emptyTitle}>No Previous Destinations</Text>
-        <Text style={styles.emptyText}>
-          Your recent destinations will appear here
-        </Text>
+        <Text style={styles.emptyTitle}>{t('search.no_history_title')}</Text>
+        <Text style={styles.emptyText}>{t('search.no_history_body')}</Text>
       </View>
     );
   }
@@ -71,7 +72,7 @@ export const PreviousLocationsList = memo(function PreviousLocationsList({
     >
       {/* Section header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Recent Destinations</Text>
+        <Text style={styles.headerText}>{t('search.recent_destinations')}</Text>
       </View>
 
       {/* Location rows */}

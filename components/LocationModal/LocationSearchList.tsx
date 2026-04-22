@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { Icon } from '@rentascooter/ui';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
+import { useTranslation } from '@rentascooter/i18n';
 import type { Location, Suggestion } from '@rentascooter/shared';
 import { LocationListBase } from './LocationListBase';
 import { SuggestionRow } from './SuggestionRow';
@@ -66,6 +67,7 @@ type LocationSearchListProps = (
 export const LocationSearchList = memo(function LocationSearchList(
   props: LocationSearchListProps
 ) {
+  const { t } = useTranslation();
   const {
     query,
     isLoading = false,
@@ -94,8 +96,8 @@ export const LocationSearchList = memo(function LocationSearchList(
   const emptyState = showEmpty
     ? {
         iconName: 'search' as const,
-        title: 'No Results Found',
-        message: error?.trim() ?? 'Try searching for a different location',
+        title: t('search.no_results_title'),
+        message: error?.trim() ?? t('search.no_results_body'),
       }
     : undefined;
 
@@ -121,7 +123,7 @@ export const LocationSearchList = memo(function LocationSearchList(
     return (
       <View style={styles.loadingContainer} testID={`${testID}-loading`}>
         <ActivityIndicator size="large" color={colors.primary.main} />
-        <Text style={styles.loadingText}>Searching...</Text>
+        <Text style={styles.loadingText}>{t('common.searching')}</Text>
       </View>
     );
   }
@@ -135,8 +137,7 @@ export const LocationSearchList = memo(function LocationSearchList(
     );
   }
 
-  const headerText =
-    `${suggestions.length} ${suggestions.length === 1 ? 'result' : 'results'}`;
+  const headerText = t('search.result_count', { count: suggestions.length });
 
   return (
     <ScrollView

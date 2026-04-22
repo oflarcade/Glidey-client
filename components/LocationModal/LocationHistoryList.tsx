@@ -6,6 +6,7 @@
  */
 
 import React, { memo } from 'react';
+import { useTranslation } from '@rentascooter/i18n';
 import type { Location } from '@rentascooter/shared';
 import { LocationListBase } from './LocationListBase';
 
@@ -27,21 +28,22 @@ export const LocationHistoryList = memo(function LocationHistoryList({
   onScrollEnd,
   testID = 'location-history-list',
 }: LocationHistoryListProps) {
+  const { t } = useTranslation();
   const showEmpty = locations.length === 0 && !isLoading;
 
   return (
     <LocationListBase
       items={locations}
       variant="previous"
-      header={{ type: 'static', text: 'Recent Destinations' }}
+      header={{ type: 'static', text: t('search.recent_destinations') }}
       isLoading={isLoading}
-      loadingText="Loading recent destinations..."
+      loadingText={t('search.loading_recent')}
       emptyState={
         showEmpty
           ? {
               iconName: 'history',
-              title: 'No Previous Destinations',
-              message: 'Your recent destinations will appear here',
+              title: t('search.no_history_title'),
+              message: t('search.no_history_body'),
             }
           : undefined
       }

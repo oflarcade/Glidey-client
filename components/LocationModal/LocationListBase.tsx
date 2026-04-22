@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Icon } from '@rentascooter/ui';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
+import { useTranslation } from '@rentascooter/i18n';
 import type { Location } from '@rentascooter/shared';
 import { LocationRow } from './LocationRow';
 
@@ -46,17 +47,19 @@ export const LocationListBase = memo(function LocationListBase({
   header,
   emptyState,
   isLoading = false,
-  loadingText = 'Searching...',
+  loadingText,
   onSelect,
   onScrollStart,
   onScrollEnd,
   testID = 'location-list',
 }: LocationListBaseProps) {
+  const { t } = useTranslation();
+  const resolvedLoadingText = loadingText ?? t('common.searching');
   if (isLoading) {
     return (
       <View style={styles.loadingContainer} testID={`${testID}-loading`}>
         <ActivityIndicator size="large" color={colors.primary.main} />
-        <Text style={styles.loadingText}>{loadingText}</Text>
+        <Text style={styles.loadingText}>{resolvedLoadingText}</Text>
       </View>
     );
   }
@@ -73,7 +76,7 @@ export const LocationListBase = memo(function LocationListBase({
 
   const headerText =
     header.type === 'count'
-      ? `${items.length} ${items.length === 1 ? 'result' : 'results'}`
+      ? t('search.result_count', { count: items.length })
       : header.text;
 
   return (

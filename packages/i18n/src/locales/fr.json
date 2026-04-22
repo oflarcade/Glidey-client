@@ -26,7 +26,9 @@
     "or": "ou",
     "not_now": "Pas maintenant",
     "user": "Utilisateur",
-    "coming_soon": "Bientôt disponible"
+    "coming_soon": "Bientôt disponible",
+    "menu": "Menu",
+    "searching": "Recherche en cours..."
   },
   "tabs": {
     "home": "Accueil",
@@ -333,6 +335,26 @@
   },
   "tracking": {
     "signal_lost": "Signal perdu — localisation en attente…"
+  },
+  "matching": {
+    "no_driver_title": "Aucun conducteur disponible",
+    "no_driver_body": "Tous les conducteurs sont occupés pour le moment. Veuillez réessayer dans quelques minutes.",
+    "searching_title": "Recherche d'un conducteur…",
+    "attempt_n_of_3": "Tentative {{n}} sur 3",
+    "last_attempt": "Dernière tentative"
+  },
+  "search": {
+    "no_results_title": "Aucun résultat trouvé",
+    "no_results_body": "Essayez de rechercher un autre lieu",
+    "result_count": {
+      "one": "1 résultat",
+      "other": "{{count}} résultats"
+    },
+    "no_history_title": "Aucune destination précédente",
+    "no_history_body": "Vos destinations récentes apparaîtront ici",
+    "recent_destinations": "Destinations récentes",
+    "placeholder": "Rechercher un lieu...",
+    "loading_recent": "Chargement des destinations récentes..."
   },
   "booking": {
     "search_welcome": "Bienvenue, {{name}}",

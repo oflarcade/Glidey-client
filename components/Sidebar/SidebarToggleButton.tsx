@@ -2,6 +2,7 @@ import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { Icon } from '@rentascooter/ui';
 import { colors, spacing } from '@rentascooter/ui/theme';
+import { useTranslation } from '@rentascooter/i18n';
 import { useUIStore } from '@rentascooter/shared';
 
 /**
@@ -13,6 +14,7 @@ export const SidebarToggleButton = memo(function SidebarToggleButton({
 }: {
   testID?: string;
 } = {}) {
+  const { t } = useTranslation();
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
 
   const onPress = useCallback(() => {
@@ -24,7 +26,7 @@ export const SidebarToggleButton = memo(function SidebarToggleButton({
       onPress={onPress}
       style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-      accessibilityLabel="Menu"
+      accessibilityLabel={t('common.menu')}
       accessibilityRole="button"
       testID={testID}
     >

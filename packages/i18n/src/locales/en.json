@@ -26,7 +26,9 @@
     "or": "or",
     "not_now": "Not now",
     "user": "User",
-    "coming_soon": "Coming soon"
+    "coming_soon": "Coming soon",
+    "menu": "Menu",
+    "searching": "Searching..."
   },
   "tabs": {
     "home": "Home",
@@ -333,6 +335,26 @@
   },
   "tracking": {
     "signal_lost": "Signal lost — awaiting location…"
+  },
+  "matching": {
+    "no_driver_title": "No driver available",
+    "no_driver_body": "All drivers are busy right now. Please try again in a few minutes.",
+    "searching_title": "Searching for a driver…",
+    "attempt_n_of_3": "Attempt {{n}} of 3",
+    "last_attempt": "Last attempt"
+  },
+  "search": {
+    "no_results_title": "No Results Found",
+    "no_results_body": "Try searching for a different location",
+    "result_count": {
+      "one": "1 result",
+      "other": "{{count}} results"
+    },
+    "no_history_title": "No Previous Destinations",
+    "no_history_body": "Your recent destinations will appear here",
+    "recent_destinations": "Recent Destinations",
+    "placeholder": "Search for a location...",
+    "loading_recent": "Loading recent destinations..."
   },
   "booking": {
     "search_welcome": "Welcome, {{name}}",

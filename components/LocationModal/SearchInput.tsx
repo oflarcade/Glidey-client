@@ -15,6 +15,7 @@ import React, { forwardRef, useEffect, useRef, useState, useImperativeHandle } f
 import { View, TextInput, Pressable, StyleSheet, type MutableRefObject } from 'react-native';
 import { Icon } from '@rentascooter/ui';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
+import { useTranslation } from '@rentascooter/i18n';
 
 export interface SearchInputRef {
   focus: () => void;
@@ -47,7 +48,7 @@ export const SearchInput = forwardRef<SearchInputRef, SearchInputProps>(
     {
       value,
       onChangeText,
-      placeholder = 'Search for a location...',
+      placeholder,
       autoFocus = false,
       readOnly = false,
       onFocus,
@@ -57,6 +58,8 @@ export const SearchInput = forwardRef<SearchInputRef, SearchInputProps>(
     },
     ref
   ) {
+    const { t } = useTranslation();
+    const resolvedPlaceholder = placeholder ?? t('search.placeholder');
     const inputRef = useRef<TextInput>(null);
     const [localValue, setLocalValue] = useState(value);
     const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -135,7 +138,7 @@ export const SearchInput = forwardRef<SearchInputRef, SearchInputProps>(
           onChangeText={handleChangeText}
           onFocus={handleFocus}
           onBlur={onBlur}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           placeholderTextColor={colors.text.tertiary}
           returnKeyType="search"
           autoCapitalize="none"

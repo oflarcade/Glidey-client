@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, Modal, ActivityIndicator, StyleSheet } from 'react-native';
 import { RetryTimeline } from '@rentascooter/ui';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
+import { useTranslation } from '@rentascooter/i18n';
 import { useMatching } from '@/hooks/useMatching';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -14,6 +15,7 @@ interface MatchingModalProps {
 // ─── MatchingModal (T-102 + T-103) ────────────────────────────────────────────
 
 export function MatchingModal({ visible, rideId, onCancel }: MatchingModalProps) {
+  const { t } = useTranslation();
   const { activeAttemptIndex, completedAttempts, inFallback } = useMatching(
     visible ? rideId : null,
   );
@@ -35,32 +37,28 @@ export function MatchingModal({ visible, rideId, onCancel }: MatchingModalProps)
                 color={colors.text.secondary}
                 style={styles.fallbackIndicator}
               />
-              <Text style={styles.fallbackTitle}>Aucun conducteur disponible</Text>
-              <Text style={styles.fallbackBody}>
-                Tous les conducteurs sont occupés pour le moment. Veuillez réessayer dans quelques minutes.
-              </Text>
+              <Text style={styles.fallbackTitle}>{t('matching.no_driver_title')}</Text>
+              <Text style={styles.fallbackBody}>{t('matching.no_driver_body')}</Text>
             </>
           ) : (
             // ── Active search (T-102) ────────────────────────────────────────
             <>
-              <Text style={styles.title}>Recherche d'un conducteur…</Text>
+              <Text style={styles.title}>{t('matching.searching_title')}</Text>
               <RetryTimeline
                 activeIndex={activeAttemptIndex}
                 completedCount={completedAttempts}
               />
               <Text style={styles.subtitle}>
-                {completedAttempts === 0
-                  ? 'Tentative 1 sur 3'
-                  : completedAttempts === 1
-                    ? 'Tentative 2 sur 3'
-                    : 'Dernière tentative'}
+                {completedAttempts === 2
+                  ? t('matching.last_attempt')
+                  : t('matching.attempt_n_of_3', { n: completedAttempts + 1 })}
               </Text>
             </>
           )}
 
           {/* Cancel always visible (T-101, T-103) */}
           <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
-            <Text style={styles.cancelText}>Annuler</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
       </View>
