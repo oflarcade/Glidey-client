@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
-import { View, Text, TouchableOpacity, ActivityIndicator, Pressable, Keyboard, Platform, StyleSheet, Dimensions, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Pressable, Keyboard, Platform, StyleSheet, Dimensions, TextInput, ScrollView } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -751,7 +751,11 @@ export const BookingSheet = memo(function BookingSheet({
                       </View>
                     </View>
                   ) : (
-                    <View style={[styles.searchingBody, { height: PEEK_HEIGHT - 20 - insets.bottom - spacing.md }]}>
+                    <ScrollView
+                      style={[styles.searchingBody, { height: PEEK_HEIGHT - 20 - insets.bottom - spacing.md }]}
+                      contentContainerStyle={styles.enRouteExpandedContent}
+                      showsVerticalScrollIndicator={false}
+                    >
                       <View style={styles.matchedDriverRow}>
                         <View style={styles.avatarCircle}>
                           <Text style={styles.avatarText}>{getInitials(matchedDriver.name)}</Text>
@@ -772,7 +776,7 @@ export const BookingSheet = memo(function BookingSheet({
                               <View style={styles.enRouteAddressContent}>
                                 <Text style={styles.enRouteAddressLabel}>{t('booking.pickup_at')}</Text>
                                 <Text style={styles.enRouteAddressValue}>
-                                  {pickup.address ?? t('booking.pickup_location')}
+                                  {pickup.address ?? pickup.name ?? t('booking.pickup_location')}
                                 </Text>
                               </View>
                             </View>
@@ -821,7 +825,7 @@ export const BookingSheet = memo(function BookingSheet({
                           </View>
                         );
                       })()}
-                    </View>
+                    </ScrollView>
                   )
                 ) : isMatched && matchedDriver ? (
                   snap === 'mini' ? (
@@ -1186,6 +1190,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
+  },
+  enRouteExpandedContent: {
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
   searchingHeader: {
     gap: spacing.md,
