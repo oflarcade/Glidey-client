@@ -102,6 +102,7 @@ export function useAuth() {
     setInitialized,
     logout: storeLogout,
   } = useAuthStore();
+  const isDemoMode = process.env.EXPO_PUBLIC_USE_DEMO === 'true';
 
   // Listen to auth state changes
   useEffect(() => {
@@ -148,6 +149,11 @@ export function useAuth() {
           // The profile state will remain from registration if it was set there
         }
       } else {
+        if (isDemoMode && isAuthenticated && user) {
+          setInitialized(true);
+          return;
+        }
+
         setUser(null);
         setProfile(null);
       }
@@ -156,7 +162,7 @@ export function useAuth() {
     });
 
     return () => unsubscribe();
-  }, [appType, setUser, setProfile, setInitialized]);
+  }, [appType, isAuthenticated, isDemoMode, setUser, setProfile, setInitialized, user]);
 
   // Login with email/password
   const login = useCallback(
