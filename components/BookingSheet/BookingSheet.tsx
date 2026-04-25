@@ -281,6 +281,7 @@ export interface BookingSheetProps {
 
 export const BookingSheet = memo(function BookingSheet({
   visible,
+  pickup,
   destination,
   distanceM,
   durationS,
@@ -763,12 +764,30 @@ export const BookingSheet = memo(function BookingSheet({
                         </View>
                         <Text style={styles.matchedRating}>★ {matchedDriver.rating.toFixed(1)}</Text>
                       </View>
-                      {destination && (
-                        <View style={styles.enRouteDestRow}>
-                          <Icon name="destination-pin" size={14} color={colors.text.secondary} />
-                          <Text style={styles.enRouteDestText} numberOfLines={1}>
-                            {destination.name ?? destination.address}
-                          </Text>
+                      {(pickup || destination) && (
+                        <View style={styles.enRouteRouteCard}>
+                          {pickup && (
+                            <View style={styles.enRouteAddressRow}>
+                              <Icon name="user-pin" size={14} color={colors.text.secondary} />
+                              <View style={styles.enRouteAddressContent}>
+                                <Text style={styles.enRouteAddressLabel}>{t('booking.pickup_at')}</Text>
+                                <Text style={styles.enRouteAddressValue}>
+                                  {pickup.address ?? t('booking.pickup_location')}
+                                </Text>
+                              </View>
+                            </View>
+                          )}
+                          {destination && (
+                            <View style={styles.enRouteAddressRow}>
+                              <Icon name="destination-pin" size={14} color={colors.text.secondary} />
+                              <View style={styles.enRouteAddressContent}>
+                                <Text style={styles.enRouteAddressLabel}>{t('booking.drop_off_at')}</Text>
+                                <Text style={styles.enRouteAddressValue}>
+                                  {destination.address ?? destination.name ?? t('client.destination')}
+                                </Text>
+                              </View>
+                            </View>
+                          )}
                         </View>
                       )}
                       <View style={styles.matchedEtaBlock}>
@@ -1401,16 +1420,31 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  enRouteDestRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: spacing.xs,
-    paddingTop: spacing.sm,
+  enRouteRouteCard: {
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: 12,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  enRouteDestText: {
+  enRouteAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+  },
+  enRouteAddressContent: {
+    flex: 1,
+    gap: 2,
+  },
+  enRouteAddressLabel: {
     ...typography.caption,
     color: colors.text.secondary,
-    flex: 1,
+  },
+  enRouteAddressValue: {
+    ...typography.body,
+    color: colors.text.primary,
   },
 
   // ── Cancel confirmation dialog ──
