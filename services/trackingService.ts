@@ -10,6 +10,27 @@ const KEEP_AWAKE_TAG = 'glidey-tracking';
 
 export type TrackingCleanup = () => void;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isValidTrackingUpdate(value: unknown): value is TrackingPositionUpdate {
+  if (!isRecord(value)) return false;
+  if (typeof value['rideId'] !== 'string' || value['rideId'].length === 0) return false;
+  if (!isRecord(value['driverLocation'])) return false;
+  if (
+    typeof value['driverLocation']['latitude'] !== 'number' ||
+    !Number.isFinite(value['driverLocation']['latitude']) ||
+    typeof value['driverLocation']['longitude'] !== 'number' ||
+    !Number.isFinite(value['driverLocation']['longitude'])
+  ) {
+    return false;
+  }
+  if (typeof value['etaSeconds'] !== 'number' || !Number.isFinite(value['etaSeconds'])) return false;
+  if (typeof value['timestamp'] !== 'number' || !Number.isFinite(value['timestamp'])) return false;
+  return true;
+}
+
 // ─── subscribeToTracking ──────────────────────────────────────────────────────
 
 export function subscribeToTracking(
@@ -57,7 +78,8 @@ export function subscribeToTracking(
     if (pollTimer !== null) return;
     pollTimer = setInterval(async () => {
       try {
-        const data = (await authedFetch('GET', `/rides/${rideId}/position`)) as TrackingPositionUpdate;
+        const data = await authedFetch('GET', `/rides/${rideId}/position`);
+        if (!isValidTrackingUpdate(data)) return;
         onUpdate(data);
       } catch {
         // Polling failure is non-terminal (T-119): surface via ApiError but keep tracking alive
@@ -72,7 +94,8 @@ export function subscribeToTracking(
 
     ws.onmessage = (ev) => {
       try {
-        const data = JSON.parse(String(ev.data)) as TrackingPositionUpdate;
+        const data = JSON.parse(String(ev.data)) as unknown;
+        if (!isValidTrackingUpdate(data)) return;
         onUpdate(data);
       } catch {
         // ignore malformed frames
