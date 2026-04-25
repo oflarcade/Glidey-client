@@ -225,6 +225,7 @@ export function subscribeToMatching(
   function handleEvent(event: MatchingEvent) {
     const terminal =
       event.state === 'matched' ||
+      event.state === 'completed' ||
       event.state === 'cancelled' ||
       event.state === 'failed';
     onEvent(event);
@@ -250,7 +251,7 @@ export function subscribeToMatching(
       if (!raw || typeof raw.event !== 'string') return;
 
       const eventRideId = getRealtimeRideId(raw);
-      if (eventRideId && eventRideId !== rideId) return;
+      if (eventRideId !== rideId) return;
 
       if (raw.event === 'ride:accepted') {
         void resolveMatchedDriver(rideId, getRealtimeDriver(raw))

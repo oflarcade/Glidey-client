@@ -201,4 +201,76 @@ describe('subscribeToMatching', () => {
 
     cleanup();
   });
+
+  it('ignores ride accepted event when nested rideId is missing', async () => {
+    const onEvent = jest.fn();
+    const cleanup = subscribeToMatching('ride-1', onEvent);
+    await Promise.resolve();
+    const ws = webSocketInstances[0];
+
+    ws.onmessage?.({
+      data: JSON.stringify({
+        event: 'ride:accepted',
+        payload: {
+          driver: {
+            id: 'driver-9',
+            name: 'Fatou Ndiaye',
+            vehiclePlate: 'DK-9090-Z',
+            vehicleType: 'Moto-taxi',
+            rating: 4.9,
+            completedRides: 221,
+            location: { latitude: 14.701, longitude: -17.462 },
+          },
+        },
+      }),
+    });
+
+    await Promise.resolve();
+
+    expect(onEvent).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it('accepts nested data envelope payloads for matching events', async () => {
+    const onEvent = jest.fn();
+    const cleanup = subscribeToMatching('ride-1', onEvent);
+    await Promise.resolve();
+    const ws = webSocketInstances[0];
+
+    ws.onmessage?.({
+      data: JSON.stringify({
+        event: 'ride:accepted',
+        data: {
+          rideId: 'ride-1',
+          driver: {
+            id: 'driver-10',
+            name: 'Ousmane Diop',
+            vehiclePlate: 'DK-2020-Y',
+            vehicleType: 'Moto-taxi',
+            rating: 4.6,
+            completedRides: 99,
+            location: { latitude: 14.699, longitude: -17.44 },
+            etaSeconds: 80,
+          },
+        },
+      }),
+    });
+
+    await Promise.resolve();
+
+    expect(onEvent).toHaveBeenCalledWith({
+      state: 'matched',
+      driver: {
+        id: 'driver-10',
+        name: 'Ousmane Diop',
+        vehiclePlate: 'DK-2020-Y',
+        vehicleType: 'Moto-taxi',
+        rating: 4.6,
+        completedRides: 99,
+        location: { latitude: 14.699, longitude: -17.44 },
+        etaSeconds: 80,
+      },
+    });
+    cleanup();
+  });
 });
