@@ -25,6 +25,7 @@ import { useNearbyDrivers, type NearbyDriver } from '@/hooks/useNearbyDrivers';
 import { useRouteDirections } from '@/hooks/useRouteDirections';
 import { useBooking } from '@/hooks/useBooking';
 import { getRouteLineCoordinates } from '@/utils/routeLineCoordinates';
+import { getUserPositionButtonLayout } from '@/utils/userPositionButtonLayout';
 import { DriverMarkers } from '@/components/DriverMarkers';
 import { DestinationTip } from '@/components/LocationModal';
 import { BookingSheet } from '@/components/BookingSheet';
@@ -455,10 +456,12 @@ export default function ClientMainScreen() {
   // Destination tip offset (below modal when open)
   const destinationTipOffset = sheetMode === 'search' ? topBarOffset + 80 : topBarOffset;
 
-  // UserPositionButton offset (reposition when sheet is in search mode)
-  const userPositionButtonBottom = sheetMode === 'search'
-    ? insets.bottom + spacing.xl + 200
-    : insets.bottom + spacing.xl;
+  const userPositionButtonLayout = useMemo(() => getUserPositionButtonLayout({
+    sheetMode,
+    rideState,
+    safeAreaBottom: insets.bottom,
+    baseBottomSpacing: spacing.xl,
+  }), [sheetMode, rideState, insets.bottom]);
 
   return (
     <View style={styles.container}>
@@ -540,12 +543,14 @@ export default function ClientMainScreen() {
       )}
 
       {/* Center on location FAB */}
-      <UserPositionButton
-        onPress={handleLocatePress}
-        isGpsEnabled={isServiceEnabled === true && permissionStatus === 'granted'}
-        style={[styles.fab, { bottom: userPositionButtonBottom }]}
-        testID="locate-fab"
-      />
+      {userPositionButtonLayout.isVisible && (
+        <UserPositionButton
+          onPress={handleLocatePress}
+          isGpsEnabled={isServiceEnabled === true && permissionStatus === 'granted'}
+          style={[styles.fab, { bottom: userPositionButtonLayout.bottomOffset }]}
+          testID="locate-fab"
+        />
+      )}
 
       {/* In-map booking sheet — auto-presents on destination confirmation (R1) */}
       <BookingSheet
