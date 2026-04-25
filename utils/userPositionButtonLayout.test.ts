@@ -4,9 +4,11 @@ describe('getUserPositionButtonLayout', () => {
   const baseInput = {
     safeAreaBottom: 20,
     baseBottomSpacing: 24,
+    sheetBottomSpacing: 8,
+    sheetVisibleHeight: 460,
   } as const;
 
-  it('keeps button visible above expanded search sheet in idle state', () => {
+  it('positions button above current sheet height in search mode', () => {
     const result = getUserPositionButtonLayout({
       ...baseInput,
       sheetMode: 'search',
@@ -14,7 +16,21 @@ describe('getUserPositionButtonLayout', () => {
     });
 
     expect(result).toEqual({
-      bottomOffset: 624,
+      bottomOffset: 488,
+      isVisible: true,
+    });
+  });
+
+  it('uses base offset when sheet is dismissed', () => {
+    const result = getUserPositionButtonLayout({
+      ...baseInput,
+      sheetMode: 'search',
+      rideState: 'idle',
+      sheetVisibleHeight: 0,
+    });
+
+    expect(result).toEqual({
+      bottomOffset: 44,
       isVisible: true,
     });
   });

@@ -4,12 +4,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Switch,
   Alert,
   Linking,
 } from 'react-native';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
-import { TopBar, Icon, ListSheet } from '@rentascooter/ui';
+import { TopBar, Icon } from '@rentascooter/ui';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation, type SupportedLocale } from '@rentascooter/i18n';
@@ -97,7 +98,7 @@ export default function SettingsScreen() {
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [locationSharing, setLocationSharing] = useState(true);
-  const [languageSheetVisible, setLanguageSheetVisible] = useState(false);
+  const [languageDropdownVisible, setLanguageDropdownVisible] = useState(false);
 
   useEffect(() => {
     async function loadSettings() {
@@ -133,12 +134,12 @@ export default function SettingsScreen() {
   }, []);
 
   const handleLanguagePress = useCallback(() => {
-    setLanguageSheetVisible(true);
+    setLanguageDropdownVisible((isVisible) => !isVisible);
   }, []);
 
   const handleLanguageSelect = useCallback((selectedLocale: SupportedLocale) => {
     void setLocale(selectedLocale);
-    setLanguageSheetVisible(false);
+    setLanguageDropdownVisible(false);
   }, [setLocale]);
 
   const handlePrivacyPress = useCallback(() => {
@@ -247,6 +248,32 @@ export default function SettingsScreen() {
               value={languageLabel}
               onPress={handleLanguagePress}
             />
+            {languageDropdownVisible ? (
+              <View style={styles.languageOptionList} testID="settings-language-dropdown">
+                <Pressable
+                  style={[
+                    styles.languageOptionItem,
+                    locale === 'fr' && styles.languageOptionItemSelected,
+                  ]}
+                  onPress={() => handleLanguageSelect('fr')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.french')}
+                >
+                  <Text style={styles.languageOptionText}>{t('common.french')}</Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.languageOptionItem,
+                    locale === 'en' && styles.languageOptionItemSelected,
+                  ]}
+                  onPress={() => handleLanguageSelect('en')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.english')}
+                >
+                  <Text style={styles.languageOptionText}>{t('common.english')}</Text>
+                </Pressable>
+              </View>
+            ) : null}
             <SettingsItem
               icon="help-circle"
               label={t('settings.help_support') || 'Help & Support'}
@@ -282,37 +309,6 @@ export default function SettingsScreen() {
           </Text>
         </View>
       </ScrollView>
-      <ListSheet
-        visible={languageSheetVisible}
-        onClose={() => setLanguageSheetVisible(false)}
-        title={t('settings.language') || 'Language'}
-        testID="settings-language-sheet"
-      >
-        <View style={styles.languageOptionList}>
-          <TouchableOpacity
-            style={[
-              styles.languageOptionItem,
-              locale === 'fr' && styles.languageOptionItemSelected,
-            ]}
-            onPress={() => handleLanguageSelect('fr')}
-            accessibilityRole="button"
-            accessibilityLabel={t('common.french')}
-          >
-            <Text style={styles.languageOptionText}>{t('common.french')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.languageOptionItem,
-              locale === 'en' && styles.languageOptionItemSelected,
-            ]}
-            onPress={() => handleLanguageSelect('en')}
-            accessibilityRole="button"
-            accessibilityLabel={t('common.english')}
-          >
-            <Text style={styles.languageOptionText}>{t('common.english')}</Text>
-          </TouchableOpacity>
-        </View>
-      </ListSheet>
     </View>
   );
 }
