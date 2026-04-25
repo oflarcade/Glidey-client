@@ -12,7 +12,8 @@ export default function MainLayout() {
   const profile = useAuthStore((s) => s.profile);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const bootstrapped = useRef(false);
-  const pushRegistrationAttempted = useRef(false);
+  const pushRegistrationInFlight = useRef(false);
+  const pushRegistrationUid = useRef<string | null>(null);
 
   // EXPO_PUBLIC_USE_DEMO is build-time constant — no need in deps
   const isDemoMode = process.env.EXPO_PUBLIC_USE_DEMO === 'true';
@@ -49,13 +50,21 @@ export default function MainLayout() {
   }, [isAuthenticated, user, profile]);
 
   useEffect(() => {
-    if (isDemoMode || !isAuthenticated || pushRegistrationAttempted.current) return;
-    pushRegistrationAttempted.current = true;
+    if (isDemoMode || !isAuthenticated || !user?.uid) return;
+    if (pushRegistrationInFlight.current || pushRegistrationUid.current === user.uid) return;
+    pushRegistrationInFlight.current = true;
 
-    registerPushToken().catch(() => {
-      pushRegistrationAttempted.current = false;
-    });
-  }, [isAuthenticated]);
+    registerPushToken()
+      .then(() => {
+        pushRegistrationUid.current = user.uid;
+      })
+      .catch(() => {
+        pushRegistrationUid.current = null;
+      })
+      .finally(() => {
+        pushRegistrationInFlight.current = false;
+      });
+  }, [isAuthenticated, user?.uid]);
 
   return (
     <UserProvider>

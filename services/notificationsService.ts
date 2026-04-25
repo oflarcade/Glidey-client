@@ -34,6 +34,11 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function sanitizeInteger(value: number | undefined, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.trunc(value);
+}
+
 function mapNotificationType(data: Record<string, string> | null): NotificationType {
   const kind = data?.type;
   if (kind === 'success' || kind === 'error' || kind === 'warning' || kind === 'info') {
@@ -57,11 +62,14 @@ export async function listNotifications(
   params: ListNotificationsParams = {},
 ): Promise<NotificationData[]> {
   const limit = clamp(
-    params.limit ?? NOTIFICATIONS_LIMIT_DEFAULT,
+    sanitizeInteger(params.limit, NOTIFICATIONS_LIMIT_DEFAULT),
     NOTIFICATIONS_LIMIT_MIN,
     NOTIFICATIONS_LIMIT_MAX,
   );
-  const offset = Math.max(NOTIFICATIONS_OFFSET_DEFAULT, params.offset ?? NOTIFICATIONS_OFFSET_DEFAULT);
+  const offset = Math.max(
+    NOTIFICATIONS_OFFSET_DEFAULT,
+    sanitizeInteger(params.offset, NOTIFICATIONS_OFFSET_DEFAULT),
+  );
   const unreadOnly = params.unreadOnly ?? false;
 
   const query = new URLSearchParams({

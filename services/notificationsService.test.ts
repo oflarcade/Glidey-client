@@ -49,6 +49,14 @@ describe('notificationsService', () => {
 
       expect(mockAuthedFetch).toHaveBeenCalledWith('GET', '/notifications?limit=100&offset=0&unreadOnly=true');
     });
+
+    it('falls back to defaults for non-finite numbers', async () => {
+      mockAuthedFetch.mockResolvedValueOnce({ notifications: [] });
+
+      await listNotifications({ limit: Number.NaN, offset: Number.POSITIVE_INFINITY });
+
+      expect(mockAuthedFetch).toHaveBeenCalledWith('GET', '/notifications?limit=20&offset=0&unreadOnly=false');
+    });
   });
 
   describe('markNotificationRead', () => {
