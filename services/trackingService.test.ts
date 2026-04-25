@@ -68,10 +68,12 @@ describe('subscribeToTracking', () => {
 
     ws.onmessage?.({
       data: JSON.stringify({
-        rideId: 'ride-1',
-        driverLocation: { latitude: 14.6937, longitude: -17.4441 },
-        etaSeconds: 120,
-        timestamp: 1_717_341_000_000,
+        payload: {
+          rideId: 'ride-1',
+          driverLocation: { latitude: 14.6937, longitude: -17.4441 },
+          etaSeconds: 120,
+          timestamp: 1_717_341_000_000,
+        },
       }),
     });
 

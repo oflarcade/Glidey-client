@@ -1,8 +1,26 @@
-import { getMatchingStatus } from './matchingService';
+import { getMatchingStatus, subscribeToMatching } from './matchingService';
 
 const mockAuthedFetch = jest.fn();
 const mockResolveToken = jest.fn();
 const mockIsApiError = jest.fn();
+const webSocketInstances: MockWebSocket[] = [];
+
+class MockWebSocket {
+  public onopen: (() => void) | null = null;
+  public onmessage: ((event: { data: string }) => void) | null = null;
+  public onerror: (() => void) | null = null;
+  public onclose: (() => void) | null = null;
+  public readonly url: string;
+
+  constructor(url: string) {
+    this.url = url;
+    webSocketInstances.push(this);
+  }
+
+  close(): void {
+    this.onclose?.();
+  }
+}
 
 jest.mock('@rentascooter/api', () => ({
   authedFetch: (...args: unknown[]) => mockAuthedFetch(...args),
@@ -18,6 +36,10 @@ jest.mock('@rentascooter/api', () => ({
 describe('getMatchingStatus', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    webSocketInstances.length = 0;
+    mockResolveToken.mockResolvedValue('token-1');
+    process.env['EXPO_PUBLIC_USE_DEMO'] = 'false';
+    (globalThis as { WebSocket: unknown }).WebSocket = MockWebSocket;
   });
 
   it('hydrates matched driver from backend profile and tracking position', async () => {
@@ -121,5 +143,62 @@ describe('getMatchingStatus', () => {
       },
     });
     expect(mockAuthedFetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('subscribeToMatching', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    webSocketInstances.length = 0;
+    mockResolveToken.mockResolvedValue('token-1');
+    process.env['EXPO_PUBLIC_USE_DEMO'] = 'false';
+    (globalThis as { WebSocket: unknown }).WebSocket = MockWebSocket;
+  });
+
+  it('accepts nested realtime payloads and uses provided driver', async () => {
+    const onEvent = jest.fn();
+
+    const cleanup = subscribeToMatching('ride-1', onEvent);
+    await Promise.resolve();
+    const ws = webSocketInstances[0];
+    expect(ws).toBeDefined();
+
+    ws.onmessage?.({
+      data: JSON.stringify({
+        event: 'ride:accepted',
+        payload: {
+          rideId: 'ride-1',
+          driver: {
+            id: 'driver-9',
+            name: 'Fatou Ndiaye',
+            vehiclePlate: 'DK-9090-Z',
+            vehicleType: 'Moto-taxi',
+            rating: 4.9,
+            completedRides: 221,
+            location: { latitude: 14.701, longitude: -17.462 },
+            etaSeconds: 120,
+          },
+        },
+      }),
+    });
+
+    await Promise.resolve();
+
+    expect(onEvent).toHaveBeenCalledWith({
+      state: 'matched',
+      driver: {
+        id: 'driver-9',
+        name: 'Fatou Ndiaye',
+        vehiclePlate: 'DK-9090-Z',
+        vehicleType: 'Moto-taxi',
+        rating: 4.9,
+        completedRides: 221,
+        location: { latitude: 14.701, longitude: -17.462 },
+        etaSeconds: 120,
+      },
+    });
+    expect(mockAuthedFetch).not.toHaveBeenCalled();
+
+    cleanup();
   });
 });

@@ -58,6 +58,8 @@ interface RawRealtimePayload {
   rideId?: unknown;
   driverId?: unknown;
   driver?: unknown;
+  payload?: unknown;
+  data?: unknown;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -125,6 +127,26 @@ function parseRealtimePayload(data: string): RawRealtimePayload | null {
   } catch {
     return null;
   }
+}
+
+function getNestedRecordCandidate(raw: RawRealtimePayload): Record<string, unknown> | null {
+  if (isRecord(raw.payload)) return raw.payload;
+  if (isRecord(raw.data)) return raw.data;
+  return null;
+}
+
+function getRealtimeRideId(raw: RawRealtimePayload): string | undefined {
+  if (typeof raw.rideId === 'string') return raw.rideId;
+  const nested = getNestedRecordCandidate(raw);
+  if (nested && typeof nested['rideId'] === 'string') return nested['rideId'];
+  return undefined;
+}
+
+function getRealtimeDriver(raw: RawRealtimePayload): unknown {
+  if (raw.driver !== undefined) return raw.driver;
+  const nested = getNestedRecordCandidate(raw);
+  if (nested && nested['driver'] !== undefined) return nested['driver'];
+  return undefined;
 }
 
 // ─── Demo fixture (T-097) ─────────────────────────────────────────────────────
@@ -227,10 +249,11 @@ export function subscribeToMatching(
       const raw = parseRealtimePayload(String(ev.data));
       if (!raw || typeof raw.event !== 'string') return;
 
-      if (typeof raw.rideId === 'string' && raw.rideId !== rideId) return;
+      const eventRideId = getRealtimeRideId(raw);
+      if (eventRideId && eventRideId !== rideId) return;
 
       if (raw.event === 'ride:accepted') {
-        void resolveMatchedDriver(rideId, raw.driver)
+        void resolveMatchedDriver(rideId, getRealtimeDriver(raw))
           .then((driver) => {
             if (!driver) return;
             handleEvent({ state: 'matched', driver });

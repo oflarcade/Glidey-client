@@ -31,6 +31,14 @@ function isValidTrackingUpdate(value: unknown): value is TrackingPositionUpdate 
   return true;
 }
 
+function normalizeTrackingPayload(value: unknown): TrackingPositionUpdate | null {
+  if (isValidTrackingUpdate(value)) return value;
+  if (!isRecord(value)) return null;
+  if (isValidTrackingUpdate(value['payload'])) return value['payload'];
+  if (isValidTrackingUpdate(value['data'])) return value['data'];
+  return null;
+}
+
 // ─── subscribeToTracking ──────────────────────────────────────────────────────
 
 export function subscribeToTracking(
@@ -95,8 +103,9 @@ export function subscribeToTracking(
     ws.onmessage = (ev) => {
       try {
         const data = JSON.parse(String(ev.data)) as unknown;
-        if (!isValidTrackingUpdate(data)) return;
-        onUpdate(data);
+        const update = normalizeTrackingPayload(data);
+        if (!update) return;
+        onUpdate(update);
       } catch {
         // ignore malformed frames
       }
