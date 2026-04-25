@@ -31,7 +31,7 @@ import { DestinationTip } from '@/components/LocationModal';
 import { BookingSheet } from '@/components/BookingSheet';
 import type { PromoValidateResult } from '@/services/promoService';
 import { getMatchingStatus } from '@/services/matchingService';
-import { animateToLocation, animateToDestination } from '@/utils/mapAnimations';
+import { animateToLocation, animateToDestination, animateToGuidanceView } from '@/utils/mapAnimations';
 import { getMockDriversNear } from '@/utils/mockDrivers';
 import { useUser } from '@rentascooter/auth';
 import { useRideStore } from '@rentascooter/shared';
@@ -198,10 +198,15 @@ export default function ClientMainScreen() {
     ? { latitude: location.latitude, longitude: location.longitude }
     : null;
 
-  // Camera flies to pickup position when driver matches
+  // Camera transitions to a navigation-like guidance view when driver matches.
   useEffect(() => {
-    if (rideState !== 'matched' || !pickup) return;
-    void animateToLocation(cameraRef, { latitude: pickup.latitude, longitude: pickup.longitude });
+    if (rideState !== 'matched' || !pickup || !selectedDestination) return;
+    void animateToGuidanceView(
+      cameraRef,
+      { latitude: pickup.latitude, longitude: pickup.longitude },
+      selectedDestination,
+      { padding: { top: 180, bottom: 360, left: 32, right: 32 } }
+    );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rideState]);
 
