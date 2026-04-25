@@ -291,7 +291,8 @@
     "new_ride_available": "New ride available",
     "ride_cancelled": "Ride has been cancelled",
     "empty_title": "No notifications",
-    "empty_subtitle": "You're all caught up!"
+    "empty_subtitle": "You're all caught up!",
+    "error_loading": "Unable to load notifications. Pull to refresh."
   },
   "currency": {
     "symbol": "XOF",

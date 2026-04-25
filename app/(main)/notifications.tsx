@@ -1,20 +1,60 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
 import { TopBar, Icon, NotificationItem } from '@rentascooter/ui';
 import type { NotificationData } from '@rentascooter/ui';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@rentascooter/i18n';
+import { listNotifications, markNotificationRead } from '@/services/notificationsService';
+
+const NOTIFICATION_FETCH_LIMIT = 20;
+
+function EmptyNotifications({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <View style={styles.emptyState}>
+      <Text style={styles.emptyText}>{title}</Text>
+      <Text style={styles.emptySubtext}>{subtitle}</Text>
+    </View>
+  );
+}
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasError, setHasError] = useState<boolean>(false);
 
-  const handleNotificationPress = useCallback((notification: NotificationData) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
-    );
+  const loadNotifications = useCallback(async (): Promise<void> => {
+    setHasError(false);
+    try {
+      const items = await listNotifications({ limit: NOTIFICATION_FETCH_LIMIT });
+      setNotifications(items);
+    } catch {
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadNotifications();
+  }, [loadNotifications]);
+
+  const handleNotificationPress = useCallback(async (notification: NotificationData) => {
+    if (notification.isRead) return;
+    setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)));
+    try {
+      await markNotificationRead(notification.id);
+    } catch {
+      setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, isRead: false } : n)));
+    }
   }, []);
 
   const handleBackPress = useCallback(() => {
@@ -47,12 +87,23 @@ export default function NotificationsScreen() {
           <TouchableOpacity
             onPress={handleBackPress}
             style={styles.backButton}
+            accessibilityRole="button"
             accessibilityLabel={t('common.back')}
           >
             <Icon name="chevron-left" size="md" color={colors.text.primary} />
           </TouchableOpacity>
         }
       />
+      {isLoading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="small" color={colors.primary.main} />
+        </View>
+      ) : null}
+      {hasError ? (
+        <View style={styles.errorState}>
+          <Text style={styles.errorText}>{t('notifications.error_loading')}</Text>
+        </View>
+      ) : null}
       <FlatList
         data={notifications}
         renderItem={renderNotification}
@@ -61,11 +112,15 @@ export default function NotificationsScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>{t('notifications.empty_title')}</Text>
-            <Text style={styles.emptySubtext}>{t('notifications.empty_subtitle')}</Text>
-          </View>
+          !isLoading && !hasError ? (
+            <EmptyNotifications
+              title={t('notifications.empty_title')}
+              subtitle={t('notifications.empty_subtitle')}
+            />
+          ) : null
         }
+        refreshing={isLoading}
+        onRefresh={loadNotifications}
       />
     </View>
   );
@@ -84,6 +139,20 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
+  },
+  loaderContainer: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorState: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  errorText: {
+    ...typography.body,
+    color: colors.semantic.error,
+    textAlign: 'center',
   },
   emptyState: {
     flex: 1,

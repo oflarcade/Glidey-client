@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { SidebarContent } from '@/components/Sidebar';
 import { UserProvider, useAuthStore } from '@rentascooter/auth';
 import { ensureClientProfile } from '@/services/userService';
+import { registerPushToken } from '@/services/pushRegistrationService';
 import { useTranslation } from '@rentascooter/i18n';
 
 export default function MainLayout() {
@@ -11,6 +12,7 @@ export default function MainLayout() {
   const profile = useAuthStore((s) => s.profile);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const bootstrapped = useRef(false);
+  const pushRegistrationAttempted = useRef(false);
 
   // EXPO_PUBLIC_USE_DEMO is build-time constant — no need in deps
   const isDemoMode = process.env.EXPO_PUBLIC_USE_DEMO === 'true';
@@ -45,6 +47,15 @@ export default function MainLayout() {
       bootstrapped.current = false;
     });
   }, [isAuthenticated, user, profile]);
+
+  useEffect(() => {
+    if (isDemoMode || !isAuthenticated || pushRegistrationAttempted.current) return;
+    pushRegistrationAttempted.current = true;
+
+    registerPushToken().catch(() => {
+      pushRegistrationAttempted.current = false;
+    });
+  }, [isAuthenticated]);
 
   return (
     <UserProvider>

@@ -291,7 +291,8 @@
     "new_ride_available": "Nouveau trajet disponible",
     "ride_cancelled": "Le trajet a été annulé",
     "empty_title": "Aucune notification",
-    "empty_subtitle": "Vous êtes à jour !"
+    "empty_subtitle": "Vous êtes à jour !",
+    "error_loading": "Impossible de charger les notifications. Tirez pour actualiser."
   },
   "currency": {
     "symbol": "XOF",
