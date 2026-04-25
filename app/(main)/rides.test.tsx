@@ -1,6 +1,5 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
-import { Text, TouchableOpacity, View } from 'react-native';
 
 import RidesScreen from './rides';
 
@@ -18,24 +17,28 @@ jest.mock('@rentascooter/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-jest.mock('@rentascooter/ui', () => ({
-  Card: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
-  Badge: ({ label }: { label: string }) => <Text>{label}</Text>,
-  StarRating: () => <Text>star-rating</Text>,
-  TopBar: ({
-    title,
-    leftAction,
-  }: {
-    title: string;
-    leftAction?: React.ReactNode;
-  }) => (
-    <View>
-      <Text>{title}</Text>
-      {leftAction}
-    </View>
-  ),
-  Icon: () => <Text>icon</Text>,
-}));
+jest.mock('@rentascooter/ui', () => {
+  const React = require('react');
+  const { Text, View } = require('react-native');
+  return {
+    Card: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
+    Badge: ({ label }: { label: string }) => <Text>{label}</Text>,
+    StarRating: () => <Text>star-rating</Text>,
+    TopBar: ({
+      title,
+      leftAction,
+    }: {
+      title: string;
+      leftAction?: React.ReactNode;
+    }) => (
+      <View>
+        <Text>{title}</Text>
+        {leftAction}
+      </View>
+    ),
+    Icon: () => <Text>icon</Text>,
+  };
+});
 
 jest.mock('@/hooks/useRideHistory', () => ({
   useRideHistory: () => ({
