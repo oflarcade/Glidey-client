@@ -22,6 +22,7 @@ config.transformer = {
 
 config.resolver = {
   ...config.resolver,
+  blockList: /.*\.(test|spec)\.(ts|tsx|js|jsx)$/,
   // Remove svg from asset extensions (so it's not treated as an image)
   assetExts: config.resolver.assetExts.filter((ext) => ext !== 'svg'),
   // Add svg to source extensions (so it can be imported as a component)
