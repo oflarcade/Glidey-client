@@ -1,13 +1,12 @@
 /**
  * Rides Service
  *
- * Firebase callable wrappers for ride history.
- * Auth is implicit via Firebase token (context.auth.uid on backend).
+ * REST wrappers for ride history.
+ * Auth is sent via Bearer token by authedFetch.
  */
 
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseFunctions } from '@rentascooter/auth';
-import type { ApiResponse, Ride } from '@rentascooter/shared';
+import { authedFetch } from '@rentascooter/api';
+import type { Ride } from '@rentascooter/shared';
 
 const RIDE_HISTORY_LIMIT_MIN = 1;
 const RIDE_HISTORY_LIMIT_MAX = 50;
@@ -22,7 +21,7 @@ export interface GetRideHistoryRequest {
 }
 
 export interface GetRideHistoryResponse {
-  results: Ride[];
+  rides: Ride[];
 }
 
 /**
@@ -35,19 +34,15 @@ export async function getRideHistory(
   limit: number = RIDE_HISTORY_LIMIT_DEFAULT
 ): Promise<Ride[]> {
   const safeLimit = clampLimit(limit, RIDE_HISTORY_LIMIT_MIN, RIDE_HISTORY_LIMIT_MAX);
-  const functions = getFirebaseFunctions();
-  const callable = httpsCallable<
-    GetRideHistoryRequest,
-    ApiResponse<GetRideHistoryResponse>
-  >(functions, 'getRideHistory');
+  const result = await authedFetch('GET', `/rides/history?limit=${safeLimit}`);
 
-  const result = await callable({ limit: safeLimit });
-
-  if (!result.data.success || !result.data.data) {
-    throw new Error(
-      result.data.error?.message ?? 'Failed to get ride history'
-    );
+  if (Array.isArray(result)) {
+    return result as Ride[];
   }
 
-  return result.data.data.results ?? [];
+  if (result && typeof result === 'object' && Array.isArray((result as GetRideHistoryResponse).rides)) {
+    return (result as GetRideHistoryResponse).rides;
+  }
+
+  throw new Error('Failed to get ride history');
 }

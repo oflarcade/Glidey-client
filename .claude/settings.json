@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"SessionStart\", \"additionalContext\": \"[Expo Project] This is an Expo 54 / React Native 0.81 project. When implementing any Expo or React Native features, invoke the relevant expo:* skill first. Available skills: expo:building-native-ui (native UI components), expo:native-data-fetching (data fetching patterns), expo:expo-dev-client (dev client builds), expo:expo-api-routes (API routes), expo:upgrading-expo (SDK upgrades), expo:expo-module (native modules), expo:use-dom (DOM components), expo:expo-deployment (EAS deployment), expo:expo-cicd-workflows (CI/CD), expo:expo-tailwind-setup (Tailwind), expo:expo-ui-swift-ui (SwiftUI), expo:expo-ui-jetpack-compose (Jetpack Compose).\"}}'"
+          }
+        ]
+      }
+    ]
+  }
+}

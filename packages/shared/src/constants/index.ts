@@ -46,7 +46,7 @@ export const API_ENDPOINTS = {
   RIDES_LIST: '/rides',
   RIDES_ACCEPT: '/rides/:id/accept',
   RIDES_UPDATE_STATUS: '/rides/:id/status',
-  RIDES_RATE: '/rides/:id/rate',
+  RIDES_RATE: '/rides/:id/rating',
   RIDES_CANCEL: '/rides/:id/cancel',
 
   // Drivers

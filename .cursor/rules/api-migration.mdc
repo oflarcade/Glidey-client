@@ -1,0 +1,114 @@
+---
+description: REST + WebSocket migration rules for the Client (Rider) app
+globs: services/**/*.ts, hooks/**/*.ts
+alwaysApply: true
+---
+
+# Client App — API Layer (Post-Migration)
+
+## API client — single source of truth
+
+All HTTP calls go through `services/apiClient.ts`. Never use `fetch` or `axios` directly in hooks or components.
+
+```typescript
+// services/apiClient.ts
+import auth from '@react-native-firebase/auth';
+
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+
+async function getAuthHeader(): Promise<Record<string, string>> {
+  const token = await auth().currentUser?.getIdToken();
+  if (!token) throw new Error('Not authenticated');
+  return { Authorization: `Bearer ${token}` };
+}
+
+export const apiClient = {
+  async get<T>(path: string): Promise<T> {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      headers: await getAuthHeader(),
+    });
+    if (!res.ok) throw new ApiError(res.status, await res.json());
+    return res.json();
+  },
+  async post<T>(path: string, body: unknown): Promise<T> { /* same pattern */ },
+  async patch<T>(path: string, body: unknown): Promise<T> { /* same pattern */ },
+};
+```
+
+## No more `httpsCallable` — ever
+
+Every Firebase callable must be replaced. Never add new callables. The replacement map:
+
+| Old callable | New REST call |
+|---|---|
+| `getNearbyDriversForMap` | `GET /drivers/nearby?lat=&lng=&radius=` |
+| `getRideHistory` | `GET /rides/history?limit=` |
+| `suggestLocation` | `POST /locations/suggest` |
+| `retrieveLocation` | `POST /locations/retrieve` |
+| `searchLocations` | `POST /locations/search` |
+| `getLocationHistory` | `GET /locations/history` |
+| `saveLocationToHistory` | `POST /locations/history` |
+| `getRouteDirections` | `GET /directions?fromLat=&fromLng=&toLat=&toLng=` |
+
+## WebSocket hook — useRideSocket
+
+After `createRide` succeeds, connect to WS and listen for ride events:
+
+```typescript
+// hooks/useRideSocket.ts
+export function useRideSocket(rideId: string | null) {
+  const [driverLocation, setDriverLocation] = useState<LatLng | null>(null);
+  const [rideStatus, setRideStatus] = useState<RideStatus>('pending');
+
+  useEffect(() => {
+    if (!rideId) return;
+    const ws = connectRideWebSocket(); // authenticate + subscribe
+
+    ws.on('ride:accepted', (payload) => setRideStatus('accepted'));
+    ws.on('driver:location', ({ lat, lng }) => setDriverLocation({ lat, lng }));
+    ws.on('ride:completed', () => setRideStatus('completed'));
+
+    return () => ws.close();
+  }, [rideId]);
+
+  return { driverLocation, rideStatus };
+}
+```
+
+## React Query — query key conventions
+
+```typescript
+export const queryKeys = {
+  drivers: {
+    nearby: (lat: number, lng: number) => ['drivers', 'nearby', lat, lng] as const,
+  },
+  rides: {
+    history: (limit: number) => ['rides', 'history', limit] as const,
+  },
+  locations: {
+    history: () => ['locations', 'history'] as const,
+    suggest: (query: string, sessionToken: string) => ['locations', 'suggest', query, sessionToken] as const,
+  },
+  directions: {
+    route: (from: LatLng, to: LatLng) => ['directions', from, to] as const,
+  },
+};
+```
+
+## Demo mode
+
+Demo mode (`EXPO_PUBLIC_USE_DEMO=true`) must still work post-migration:
+- `driversService`: return mock drivers when `getNearbyDrivers` returns empty
+- `useRideSocket`: mock events in `__DEV__` if no server available
+- Test auth: `+221775551234` / OTP `123456`
+
+## Token refresh
+
+Firebase tokens expire after 1h. The API client must handle 401 responses:
+```typescript
+// On 401 → force token refresh → retry once
+if (res.status === 401) {
+  await auth().currentUser?.getIdToken(true); // forceRefresh=true
+  return fetch(/* retry */);
+}
+```

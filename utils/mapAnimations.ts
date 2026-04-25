@@ -166,12 +166,14 @@ export async function animateToDestination(
  * @param location - Target location coordinates
  * @param zoomLevel - Desired zoom level (default: 16)
  * @param duration - Animation duration in ms (default: 1000)
+ * @param padding - Optional insets so the coordinate lands in the visible area above UI overlays
  */
 export async function animateToLocation(
   cameraRef: React.RefObject<MapboxGL.Camera | null>,
   location: GeoPoint,
   zoomLevel: number = ANIMATION_CONFIG.MAX_ZOOM,
-  duration: number = ANIMATION_CONFIG.DURATION
+  duration: number = ANIMATION_CONFIG.DURATION,
+  padding?: { paddingTop?: number; paddingBottom?: number; paddingLeft?: number; paddingRight?: number }
 ): Promise<void> {
   if (!cameraRef.current) {
     console.warn('[mapAnimations] Camera ref is null, skipping animation');
@@ -182,6 +184,14 @@ export async function animateToLocation(
     centerCoordinate: [location.longitude, location.latitude],
     zoomLevel,
     animationDuration: duration,
+    ...(padding && {
+      padding: {
+        paddingTop: padding.paddingTop ?? 0,
+        paddingBottom: padding.paddingBottom ?? 0,
+        paddingLeft: padding.paddingLeft ?? 0,
+        paddingRight: padding.paddingRight ?? 0,
+      },
+    }),
   });
 }
 

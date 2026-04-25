@@ -16,6 +16,7 @@ type EntryPoint = 'completion' | 'history';
 
 const RATING_MODAL_DELAY_MS = 5000;
 const BRAND_BG = colors.primary.main; // golden yellow #FFC629
+const HEADER_SPACER_WIDTH = 32;
 
 // Synthesize a Ride from rideStore journey data for demo/completion mode when
 // backend history hasn't synced yet. Uses all data captured at booking time.
@@ -29,6 +30,7 @@ function buildDemoRide(rideId: string, driver: MatchedDriver | null, journey: Jo
     destination: journey?.destination ?? { latitude: 0, longitude: 0, address: '—' },
     status: 'completed',
     fare: { baseFare: fareTotal, distanceFare: 0, timeFare: 0, total: fareTotal, currency: 'XOF' },
+    discountXof: journey?.discountXof ?? null,
     route: journey?.distanceM ? { distanceM: journey.distanceM, durationS: 0, polyline: '' } : undefined,
     timestamps: { requestedAt: new Date() },
     createdAt: new Date(),
@@ -106,7 +108,7 @@ export default function TripReceiptScreen() {
         setSubmitLoading(false);
       }
     },
-    [rideId, resetRideStore, navigateToMap]
+    [rideId, resetRideStore, navigateToMap, t]
   );
 
   const handleBack = useCallback(() => {
@@ -144,7 +146,7 @@ export default function TripReceiptScreen() {
     <SafeAreaView style={styles.safeArea}>
       <Header onBack={handleBack} />
 
-      <TripReceipt ride={ride} hostBackgroundColor={BRAND_BG} />
+      <TripReceipt ride={ride} hostBackgroundColor={BRAND_BG} discountAmount={ride.discountXof ?? undefined} />
 
       {source === 'completion' && !isAlreadyRated ? (
         <RatingModal
@@ -160,9 +162,16 @@ export default function TripReceiptScreen() {
 
 function Header({ onBack }: { onBack: () => void }) {
   const { t } = useTranslation();
+  const backLabel = t('common.back');
+
   return (
     <View style={styles.header}>
-      <TouchableOpacity onPress={onBack} style={styles.backButton} accessibilityLabel="Back">
+      <TouchableOpacity
+        onPress={onBack}
+        style={styles.backButton}
+        accessibilityLabel={backLabel}
+        accessibilityRole="button"
+      >
         <Icon name="chevron-left" size="md" color={colors.text.primary} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>{t('client.trip_receipt')}</Text>
@@ -186,6 +195,10 @@ const styles = StyleSheet.create({
   backButton: {
     padding: spacing.xs,
     marginRight: spacing.sm,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     ...typography.h3,
@@ -193,7 +206,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerSpacer: {
-    width: 32,
+    width: HEADER_SPACER_WIDTH,
   },
   centered: {
     flex: 1,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Pressable,
@@ -6,8 +6,12 @@ import {
   ViewStyle,
   Platform,
 } from 'react-native';
+import Animated, { useSharedValue, withTiming, useAnimatedStyle, Easing } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, shadows, borderRadius } from '../../theme';
+import { rem } from '../../utils';
+
+let _headerAnimationPlayed = false;
 
 /**
  * @description Props for the MapTopBar component
@@ -17,7 +21,7 @@ import { colors, spacing, shadows, borderRadius } from '../../theme';
  * @acceptance AC-MTB-003: Has blur effect on iOS, solid background on Android
  * @acceptance AC-MTB-004: Respects safe area insets for notched devices
  * @acceptance AC-MTB-005: Shadow provides depth separation from map
- * @acceptance AC-MTB-006: Height is ~56px content area
+ * @acceptance AC-MTB-006: Height is rem(1) content area (~16px at 390px base width)
  * @acceptance AC-MTB-007: Horizontal padding uses theme spacing.md (16px)
  * @acceptance AC-MTB-008: Left icon slot renders custom content
  * @acceptance AC-MTB-009: Center content slot for status/branding
@@ -40,30 +44,6 @@ export interface MapTopBarProps {
   testID?: string;
 }
 
-/**
- * MapTopBar Component
- *
- * A floating top bar designed to overlay a full-screen map.
- * Features semi-transparent background with blur effect and shadow for depth.
- *
- * @example
- * ```tsx
- * // Driver app with status toggle
- * <MapTopBar
- *   leftIcon={<Icon name="menu" />}
- *   centerContent={<OnlineStatusIndicator isOnline={isOnline} />}
- *   rightContent={<DriverStatusToggle isOnline={isOnline} onToggle={toggle} />}
- *   onLeftPress={openDrawer}
- * />
- *
- * // Client app with branding
- * <MapTopBar
- *   leftIcon={<Icon name="menu" />}
- *   centerContent={<AppBrandHeader />}
- *   onLeftPress={openDrawer}
- * />
- * ```
- */
 export function MapTopBar({
   leftIcon,
   centerContent,
@@ -74,17 +54,35 @@ export function MapTopBar({
 }: MapTopBarProps) {
   const insets = useSafeAreaInsets();
 
+  const headerY = useSharedValue(
+    _headerAnimationPlayed ? 0 : -(rem(1) + insets.top)
+  );
+
+  useEffect(() => {
+    if (_headerAnimationPlayed) return;
+    _headerAnimationPlayed = true;
+    headerY.value = withTiming(0, {
+      duration: 350,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: headerY.value }],
+  }));
+
   return (
-    <View
+    <Animated.View
       style={[
         styles.container,
         { paddingTop: insets.top },
+        animatedStyle,
         style,
       ]}
       testID={testID}
     >
       <View style={styles.content}>
-        {/* Left Section - entire area tappable when onLeftPress is provided */}
+        {/* Left Section */}
         <View style={styles.leftSection}>
           {onLeftPress ? (
             <Pressable
@@ -115,7 +113,7 @@ export function MapTopBar({
           {rightContent}
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -134,7 +132,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: borderRadius.lg,
     borderBottomRightRadius: borderRadius.lg,
     ...shadows.medium,
-    // iOS blur effect approximation through background opacity
     ...(Platform.OS === 'ios' && {
       backdropFilter: 'blur(20px)',
     }),
@@ -145,8 +142,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    minHeight: 56,
+    paddingVertical: 0,
+    minHeight: rem(1.5),
   },
 
   leftSection: {
@@ -162,10 +159,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     alignSelf: 'stretch',
-    paddingVertical: spacing.sm,
+    paddingVertical: 0,
     paddingRight: spacing.md,
     borderRadius: borderRadius.md,
-    minHeight: 44,
   },
   leftIconButtonPressed: {
     opacity: 0.7,

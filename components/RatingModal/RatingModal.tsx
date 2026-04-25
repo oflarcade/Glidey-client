@@ -75,6 +75,8 @@ export function RatingModal({ visible, onSubmit, onDismiss, loading = false }: R
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
+  const dismissLabel = t('common.dismiss');
+  const submitLabel = t('common.submit');
 
   return (
     <Modal
@@ -119,6 +121,7 @@ export function RatingModal({ visible, onSubmit, onDismiss, loading = false }: R
               multiline
               numberOfLines={3}
               textAlignVertical="top"
+              accessibilityLabel={t('client.review_placeholder')}
             />
             <Text style={[styles.charCounter, remaining < 20 && styles.charCounterWarn]}>
               {remaining}
@@ -131,6 +134,8 @@ export function RatingModal({ visible, onSubmit, onDismiss, loading = false }: R
               style={styles.dismissButton}
               onPress={handleDismiss}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={dismissLabel}
             >
               <Text style={styles.dismissText}>Plus tard / Later</Text>
             </TouchableOpacity>
@@ -140,6 +145,8 @@ export function RatingModal({ visible, onSubmit, onDismiss, loading = false }: R
               onPress={handleSubmit}
               disabled={!canSubmit}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={submitLabel}
             >
               {loading ? (
                 <ActivityIndicator size="small" color={colors.text.inverse} />
@@ -223,6 +230,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.background.tertiary,
     alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
   },
   dismissText: {
     ...typography.body,
@@ -235,6 +244,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.primary.main,
     alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
   },
   submitButtonDisabled: {
     opacity: 0.45,

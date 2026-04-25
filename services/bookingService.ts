@@ -67,7 +67,20 @@ export async function estimateFare(req: FareEstimateRequest): Promise<FareEstima
 
 export async function createRide(req: CreateRideV2Request): Promise<CreateRideV2Response> {
   try {
-    const data = await authedFetch('POST', '/rides/create', req);
+    const pickup = req.pickup as { address?: string; name?: string; latitude: number; longitude: number };
+    const payload = {
+      pickupAddress: pickup.address ?? pickup.name ?? 'Position actuelle',
+      destAddress: req.destination.address,
+      pickupLat: req.pickup.latitude,
+      pickupLng: req.pickup.longitude,
+      destLat: req.destination.latitude,
+      destLng: req.destination.longitude,
+      distanceM: Math.round(req.distanceM),
+      durationS: Math.round(req.durationS),
+      ...(req.vehicleTypeId ? { vehicleTypeId: req.vehicleTypeId } : {}),
+      ...(req.promoCode ? { promoCode: req.promoCode } : {}),
+    };
+    const data = await authedFetch('POST', '/rides', payload);
     return data as CreateRideV2Response;
   } catch (e) {
     if (isApiError(e) && e.code === DEMO_MODE_ERROR.code) return demoRide();
@@ -79,8 +92,8 @@ export async function createRide(req: CreateRideV2Request): Promise<CreateRideV2
 
 export async function cancelRide(req: CancelRideRequest): Promise<CancelRideResponse> {
   try {
-    const data = await authedFetch('POST', `/rides/${req.rideId}/cancel`);
-    return (data as CancelRideResponse) ?? DEMO_CANCEL;
+    await authedFetch('PATCH', `/rides/${req.rideId}/cancel`);
+    return { success: true };
   } catch (e) {
     if (isApiError(e) && e.code === DEMO_MODE_ERROR.code) return DEMO_CANCEL;
     throw e;

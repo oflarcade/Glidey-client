@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import MapboxGL from '@rnmapbox/maps';
@@ -28,6 +28,7 @@ import { getRouteLineCoordinates } from '@/utils/routeLineCoordinates';
 import { DriverMarkers } from '@/components/DriverMarkers';
 import { DestinationTip } from '@/components/LocationModal';
 import { BookingSheet } from '@/components/BookingSheet';
+import type { PromoValidateResult } from '@/services/promoService';
 import { getMatchingStatus } from '@/services/matchingService';
 import { animateToLocation, animateToDestination } from '@/utils/mapAnimations';
 import { getMockDriversNear } from '@/utils/mockDrivers';
@@ -81,6 +82,7 @@ export default function ClientMainScreen() {
   const matchedDriver = useRideStore((s) => s.matchedDriver);
   const resetRideStore = useRideStore((s) => s.reset);
   const transition = useRideStore((s) => s.transition);
+  const setJourney = useRideStore((s) => s.setJourney);
 
   // Guard: navigate to receipt screen exactly once per completion event
   const navigatedToReceiptRef = useRef(false);
@@ -177,6 +179,9 @@ export default function ClientMainScreen() {
   // Destination state
   const [selectedDestination, setSelectedDestination] = useState<Location | null>(null);
 
+  // Applied promo code — cleared on vehicle type change or when booking fails with PROMO_CODE_INVALID
+  const [appliedPromo, setAppliedPromo] = useState<(PromoValidateResult & { valid: true }) | null>(null);
+
   // Route directions when a destination is selected
   const { directions } = useRouteDirections({
     userLocation: location,
@@ -219,6 +224,45 @@ export default function ClientMainScreen() {
     distanceM: directions?.distanceM ?? 0,
     durationS: directions?.durationS ?? 0,
   });
+
+  // Wrap bookRide to snapshot journey data into rideStore before the ride begins.
+  // The receipt screen reads this when backend history hasn't synced (demo mode).
+  const handleBookRide = useCallback(async () => {
+    const selectedFare = fareEstimates?.find((e) => e.vehicleTypeId === selectedVehicleTypeId);
+    setJourney({
+      pickup: location
+        ? { latitude: location.latitude, longitude: location.longitude, address: 'Ma position' }
+        : null,
+      destination: selectedDestination,
+      fareTotal: selectedFare?.fareEstimate ?? null,
+      distanceM: directions?.distanceM ?? null,
+      discountXof: appliedPromo?.discountXof ?? null,
+    });
+    try {
+      await bookRide(appliedPromo?.code);
+    } catch (e: unknown) {
+      if ((e as { code?: string })?.code === 'PROMO_CODE_INVALID') {
+        setAppliedPromo(null);
+        Alert.alert(t('common.error'), t('booking.promo_expired_at_booking'), [{ text: 'OK' }]);
+        return;
+      }
+      throw e;
+    }
+  }, [setJourney, location, selectedDestination, fareEstimates, selectedVehicleTypeId, directions, bookRide, appliedPromo, t]);
+
+  const handleApplyPromoCode = useCallback((result: PromoValidateResult & { valid: true }) => {
+    setAppliedPromo(result);
+  }, []);
+
+  const handleRemovePromoCode = useCallback(() => {
+    setAppliedPromo(null);
+  }, []);
+
+  // Clear applied promo when vehicle type changes — fare estimate changes, discount preview is stale
+  useEffect(() => {
+    setAppliedPromo(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedVehicleTypeId]);
 
   const routeLineCoords = useMemo(
     () => getRouteLineCoordinates(directions ?? null, location, selectedDestination),
@@ -370,11 +414,13 @@ export default function ClientMainScreen() {
 
       if (cameraRef.current && hasValidCoords) {
         try {
+          // Offset the center upward so the pin lands above the booking sheet (peek = 460px)
           await animateToLocation(
             cameraRef,
             { latitude: destination.latitude, longitude: destination.longitude },
             16,
-            1000
+            1000,
+            { paddingBottom: 460 }
           );
         } catch (error) {
           console.error('[ClientMainScreen] Failed to animate camera:', error);
@@ -516,7 +562,7 @@ export default function ClientMainScreen() {
         isBusy={isBusy}
         rideState={rideState}
         rideId={rideId}
-        onBookRide={bookRide}
+        onBookRide={handleBookRide}
         onCancel={handleBookingCancel}
         onDismiss={handleClearDestination}
         onDismissToSearch={handleBookingDismissToSearch}
@@ -524,6 +570,9 @@ export default function ClientMainScreen() {
         matchedDriver={matchedDriver}
         userName={userName}
         onConfirmDestination={handleDestinationSelect}
+        appliedPromo={appliedPromo}
+        onApplyPromoCode={handleApplyPromoCode}
+        onRemovePromoCode={handleRemovePromoCode}
       />
 
       {/* Location Services Prompt Modal (centered dialog) */}
