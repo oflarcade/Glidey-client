@@ -50,7 +50,13 @@ export default function RidesScreen() {
       const rating = item.rating?.clientToDriver ?? item.driverInfo?.rating ?? 0;
 
       return (
-        <TouchableOpacity onPress={() => handleRidePress(item.id)} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={() => handleRidePress(item.id)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('client.trip_receipt')}
+          style={styles.ridePressable}
+        >
         <Card variant="elevated" padding="medium" style={styles.rideCard}>
           <View style={styles.rideHeader}>
             <Text style={styles.rideDate}>{date} {t('time.at')} {time}</Text>
@@ -98,6 +104,7 @@ export default function RidesScreen() {
             onPress={handleBackPress}
             style={styles.backButton}
             accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Icon name="chevron-left" size="md" color={colors.text.primary} />
           </TouchableOpacity>
@@ -113,6 +120,9 @@ export default function RidesScreen() {
           data={rides}
           renderItem={renderRide}
           keyExtractor={(item) => item.id}
+          initialNumToRender={8}
+          maxToRenderPerBatch={5}
+          windowSize={5}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -143,6 +153,13 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: spacing.xs,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ridePressable: {
+    minHeight: 44,
   },
   listContent: {
     padding: spacing.lg,

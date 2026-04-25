@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapboxGL from '@rnmapbox/maps';
 import { FullScreenMap, ArrivalBanner } from '@rentascooter/ui';
-import { colors, spacing } from '@rentascooter/ui/theme';
+import { colors, spacing, shadows } from '@rentascooter/ui/theme';
 import { useRideStore, selectMatchedDriver, selectRideId } from '@rentascooter/shared';
 import { useRideTracking } from '@/hooks/useRideTracking';
 import { useTranslation } from '@rentascooter/i18n';
@@ -65,12 +65,8 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: colors.primary.main,
     borderWidth: 2.5,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 4,
+    borderColor: colors.background.primary,
+    ...shadows.medium,
   },
   driverDotStale: { opacity: 0.35 },
 
@@ -80,12 +76,14 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 193, 7, 0.92)',
+    backgroundColor: colors.warning,
     alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
-  staleText: { fontSize: 13, fontWeight: '600', color: '#3D2B00' },
+  staleText: {
+    color: colors.text.primary,
+  },
 
   // ArrivalBanner pinned to bottom (T-111)
   banner: {

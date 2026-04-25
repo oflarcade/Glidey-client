@@ -34,4 +34,5 @@ export {
   selectRideState,
   selectRideId,
   selectMatchedDriver,
+  type JourneyData,
 } from './rideStore';

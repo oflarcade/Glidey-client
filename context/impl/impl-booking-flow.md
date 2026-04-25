@@ -1,6 +1,6 @@
 ---
 created: "2026-04-19"
-last_edited: "2026-04-19"
+last_edited: "2026-04-21"
 ---
 # Implementation Tracking: booking-flow
 
@@ -44,3 +44,8 @@ Build site: context/plans/build-site-booking-flow.md
 | T-117 | DONE | BookingScreen cancel only rendered when isSearching; hidden post-match |
 | T-118 | DONE | PickupScreen catch → setConfirmError → PickupPinSheet.confirmError → stays on screen |
 | T-119 | DONE | polling setInterval catch swallows single failure; next tick fires normally |
+| T-ENG-3 | DONE | createRide: POST /rides/create → POST /rides with flat payload (pickupLat/Lng, destLat/Lng, destAddress, distanceM, durationS, vehicleTypeId) |
+| T-ENG-CANCEL | DONE | cancelRide: POST /rides/{id}/cancel → PATCH /rides/{id}/cancel (no body; backend returns no JSON on cancel) |
+| T-ENG-WS | DONE | matchingService: WS URL → /realtime?token= (resolveToken async); polling → GET /rides/:id; ride:accepted → placeholderDriver (backend gap: no driver details in event) |
+| T-079 | DONE | Cancel confirmation dialog in BookingSheet searching state: confirm prompt, in-flight loading, error recovery with retry; onCancel prop changed to () => Promise<void> |
+| T-ENG-PROFILE | DONE | ensureClientProfile (services/userService.ts) — POST /client on first auth, swallows 409; skipped in demo mode (EXPO_PUBLIC_USE_DEMO=true); falls back to EXPO_PUBLIC_TEST_PHONE for NL/DE real-device testing when account has no stored phone |

@@ -1,0 +1,569 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1776875996264,
+  "projectRoot": "/Volumes/OFLMACMINI/oflarcade/Embedded-Innovation/Product/Glidey/RentAScooter-Client-Standalone",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "19.1.0",
+        "category": "frontend"
+      }
+    ],
+    "packageManager": "yarn",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "yarn build",
+    "testCommand": null,
+    "lintCommand": "yarn lint",
+    "devCommand": "yarn dev",
+    "scripts": {
+      "dev": "expo start",
+      "dev:client": "expo start --dev-client",
+      "android": "expo run:android",
+      "ios": "expo run:ios",
+      "ios:device": "expo run:ios --device",
+      "prebuild": "expo prebuild",
+      "prebuild:clean": "expo prebuild --clean",
+      "android:clean": "expo prebuild --clean && expo run:android",
+      "build": "eas build",
+      "build:dev:ios": "eas build --profile development --platform ios",
+      "build:dev:android": "eas build --profile development --platform android",
+      "build:preview:ios": "eas build --profile preview --platform ios",
+      "build:preview:android": "eas build --profile preview --platform android",
+      "lint": "eslint .",
+      "clean": "rm -rf .expo ios android node_modules"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "app",
+      "assets",
+      "components",
+      "docs"
+    ],
+    "gitBranches": {
+      "defaultBranch": "master",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "android": {
+      "path": "android",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1776875996241,
+      "keyFiles": [
+        "build.gradle",
+        "gradle.properties",
+        "gradlew",
+        "gradlew.bat",
+        "settings.gradle"
+      ]
+    },
+    "app": {
+      "path": "app",
+      "purpose": "Application code",
+      "fileCount": 4,
+      "lastAccessed": 1776875996242,
+      "keyFiles": [
+        "CLAUDE.md",
+        "_layout.tsx",
+        "index.tsx"
+      ]
+    },
+    "assets": {
+      "path": "assets",
+      "purpose": "Static assets",
+      "fileCount": 5,
+      "lastAccessed": 1776875996246,
+      "keyFiles": [
+        "Logo.png",
+        "adaptive-icon.png",
+        "icon.png",
+        "splash.png"
+      ]
+    },
+    "components": {
+      "path": "components",
+      "purpose": "UI components",
+      "fileCount": 4,
+      "lastAccessed": 1776875996246,
+      "keyFiles": [
+        "CLAUDE.md",
+        "DriverMarkers.tsx",
+        "index.ts"
+      ]
+    },
+    "config": {
+      "path": "config",
+      "purpose": "Configuration files",
+      "fileCount": 1,
+      "lastAccessed": 1776875996247,
+      "keyFiles": [
+        "firebase.ts"
+      ]
+    },
+    "context": {
+      "path": "context",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1776875996247,
+      "keyFiles": [
+        "CLAUDE.md"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 4,
+      "lastAccessed": 1776875996248,
+      "keyFiles": [
+        "demo-mapView-driver-pins-plan.md",
+        "firebase-functions-testing.md",
+        "location-modal-cta-plan.md",
+        "route-line-motorcycle-path-spec.md"
+      ]
+    },
+    "hooks": {
+      "path": "hooks",
+      "purpose": null,
+      "fileCount": 14,
+      "lastAccessed": 1776875996248,
+      "keyFiles": [
+        "CLAUDE.md",
+        "index.ts",
+        "useAddressSearch.ts",
+        "useAutocompleteLocation.ts",
+        "useBooking.ts"
+      ]
+    },
+    "ios": {
+      "path": "ios",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1776875996248,
+      "keyFiles": [
+        "Podfile",
+        "Podfile.lock",
+        "Podfile.properties.json"
+      ]
+    },
+    "packages": {
+      "path": "packages",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1776875996249,
+      "keyFiles": [
+        "CLAUDE.md"
+      ]
+    },
+    "plugins": {
+      "path": "plugins",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1776875996249,
+      "keyFiles": [
+        "withoutPushEntitlement.js"
+      ]
+    },
+    "services": {
+      "path": "services",
+      "purpose": "Business logic services",
+      "fileCount": 12,
+      "lastAccessed": 1776875996250,
+      "keyFiles": [
+        "CLAUDE.md",
+        "addressSearchService.ts",
+        "bookingService.ts",
+        "driversService.ts",
+        "index.ts"
+      ]
+    },
+    "styles": {
+      "path": "styles",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1776875996250,
+      "keyFiles": [
+        "authSharedStyles.ts"
+      ]
+    },
+    "types": {
+      "path": "types",
+      "purpose": "Type definitions",
+      "fileCount": 3,
+      "lastAccessed": 1776875996251,
+      "keyFiles": [
+        "auth.ts",
+        "sidebar.ts",
+        "svg.d.ts"
+      ]
+    },
+    "utils": {
+      "path": "utils",
+      "purpose": "Utility functions",
+      "fileCount": 9,
+      "lastAccessed": 1776875996251,
+      "keyFiles": [
+        "decodePolyline.ts",
+        "index.ts",
+        "locationSearchErrors.ts",
+        "mapAnimations.ts",
+        "mapCamera.ts"
+      ]
+    },
+    "android/app": {
+      "path": "android/app",
+      "purpose": "Application code",
+      "fileCount": 4,
+      "lastAccessed": 1776875996252,
+      "keyFiles": [
+        "build.gradle",
+        "debug.keystore",
+        "google-services.json"
+      ]
+    },
+    "packages/api": {
+      "path": "packages/api",
+      "purpose": "API routes",
+      "fileCount": 2,
+      "lastAccessed": 1776875996263,
+      "keyFiles": [
+        "package.json",
+        "tsconfig.json"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "components/BookingSheet/BookingSheet.tsx",
+      "accessCount": 7,
+      "lastAccessed": 1776898523775,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 4,
+      "lastAccessed": 1776898539869,
+      "type": "directory"
+    },
+    {
+      "path": "app/(main)/profile.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1776899443547,
+      "type": "file"
+    },
+    {
+      "path": "app/(main)/index.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1776895337357,
+      "type": "file"
+    },
+    {
+      "path": "components",
+      "accessCount": 3,
+      "lastAccessed": 1776898534649,
+      "type": "directory"
+    },
+    {
+      "path": "app/(main)/settings.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1776898618836,
+      "type": "file"
+    },
+    {
+      "path": "utils/mapAnimations.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776883956038,
+      "type": "file"
+    },
+    {
+      "path": "services/routeDirectionsService.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776884452863,
+      "type": "file"
+    },
+    {
+      "path": "app/(main)/notifications.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776898511747,
+      "type": "file"
+    },
+    {
+      "path": "app/(main)/rides.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776898512166,
+      "type": "file"
+    },
+    {
+      "path": "components/LocationModal/SearchInput.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776899225888,
+      "type": "file"
+    },
+    {
+      "path": "context/impl/impl-trip-receipt-rating.md",
+      "accessCount": 1,
+      "lastAccessed": 1776876014971,
+      "type": "file"
+    },
+    {
+      "path": "app/_layout.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776895336150,
+      "type": "file"
+    },
+    {
+      "path": "app/index.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776895336661,
+      "type": "file"
+    },
+    {
+      "path": "app/(main)/_layout.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776895337039,
+      "type": "file"
+    },
+    {
+      "path": "services/bookingService.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895339623,
+      "type": "file"
+    },
+    {
+      "path": "services/matchingService.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895339896,
+      "type": "file"
+    },
+    {
+      "path": "services/pickupService.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895340462,
+      "type": "file"
+    },
+    {
+      "path": "services/ratingsService.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895340771,
+      "type": "file"
+    },
+    {
+      "path": "services/ridesService.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895342985,
+      "type": "file"
+    },
+    {
+      "path": "services/trackingService.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895343548,
+      "type": "file"
+    },
+    {
+      "path": "services/driversService.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895343946,
+      "type": "file"
+    },
+    {
+      "path": "hooks/useBooking.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895344173,
+      "type": "file"
+    },
+    {
+      "path": "hooks/useMatching.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895346489,
+      "type": "file"
+    },
+    {
+      "path": "hooks/useRideTracking.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895347400,
+      "type": "file"
+    },
+    {
+      "path": "app/(main)/tracking.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776895347843,
+      "type": "file"
+    },
+    {
+      "path": "app/(main)/trip-receipt/[rideId].tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776895348075,
+      "type": "file"
+    },
+    {
+      "path": "components/BookingSheet/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895351056,
+      "type": "file"
+    },
+    {
+      "path": "components/DriverMarkers.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776895351566,
+      "type": "file"
+    },
+    {
+      "path": "app/(auth)/login.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776895352466,
+      "type": "file"
+    },
+    {
+      "path": "app/(main)/booking.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776895352769,
+      "type": "file"
+    },
+    {
+      "path": "packages/shared/src/stores/rideStore.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895360037,
+      "type": "file"
+    },
+    {
+      "path": "packages/shared/src/stores/uiStore.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895360492,
+      "type": "file"
+    },
+    {
+      "path": "packages/shared/src/stores/appStore.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895360756,
+      "type": "file"
+    },
+    {
+      "path": "packages/shared/src/stores/locationStore.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895361177,
+      "type": "file"
+    },
+    {
+      "path": "app",
+      "accessCount": 1,
+      "lastAccessed": 1776895369724,
+      "type": "directory"
+    },
+    {
+      "path": "app/(main)/pickup.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776895377617,
+      "type": "file"
+    },
+    {
+      "path": "hooks/useNearbyDrivers.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895378011,
+      "type": "file"
+    },
+    {
+      "path": "hooks/useRideHistory.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776895378909,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1776895384958,
+      "type": "file"
+    },
+    {
+      "path": "components/DriverReveal/DriverReveal.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776898516868,
+      "type": "file"
+    },
+    {
+      "path": "components/LanguagePicker/LanguagePicker.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776898517344,
+      "type": "file"
+    },
+    {
+      "path": "components/MatchingModal/MatchingModal.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776898517606,
+      "type": "file"
+    },
+    {
+      "path": "components/Sidebar/SidebarContent.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776898518265,
+      "type": "file"
+    },
+    {
+      "path": "components/Sidebar/SidebarMenuItem.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776898518546,
+      "type": "file"
+    },
+    {
+      "path": "components/Sidebar/SidebarToggleButton.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776898518872,
+      "type": "file"
+    },
+    {
+      "path": "components/ScooterCarousel/ScooterCarousel.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776898521170,
+      "type": "file"
+    },
+    {
+      "path": "components/ScooterCarousel/ScooterTypeCard.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776898521449,
+      "type": "file"
+    },
+    {
+      "path": "components/TripReceipt/TripReceipt.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776898522169,
+      "type": "file"
+    },
+    {
+      "path": "components/LocationModal/LocationSearchList.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776898522873,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

@@ -1,13 +1,11 @@
 /**
  * Ratings Service
  *
- * Firebase callable wrapper for submitting ride ratings.
- * Auth is implicit via Firebase token (context.auth.uid on backend).
+ * REST wrapper for submitting ride ratings.
+ * Auth is sent via Bearer token by authedFetch.
  */
 
-import { httpsCallable, FunctionsError } from 'firebase/functions';
-import { getFirebaseFunctions } from '@rentascooter/auth';
-import type { ApiResponse } from '@rentascooter/shared';
+import { authedFetch, isApiError, DEMO_MODE_ERROR } from '@rentascooter/api';
 
 export interface SubmitRatingRequest {
   rideId: string;
@@ -16,28 +14,15 @@ export interface SubmitRatingRequest {
 }
 
 export async function submitRating(payload: SubmitRatingRequest): Promise<void> {
-  const functions = getFirebaseFunctions();
-  const callable = httpsCallable<SubmitRatingRequest, ApiResponse<null>>(
-    functions,
-    'submitRideRating'
-  );
-
-  let result;
   try {
-    result = await callable(payload);
+    const body = {
+      rating: payload.rating,
+      ...(payload.comment ? { comment: payload.comment } : {}),
+    };
+    await authedFetch('POST', `/rides/${payload.rideId}/rating`, body);
   } catch (err) {
-    // Gracefully handle the case where the Cloud Function is not yet deployed.
-    if (
-      err instanceof FunctionsError &&
-      (err.code === 'functions/not-found' || err.code === 'functions/unimplemented')
-    ) {
-      // Treat a missing callable as a no-op so the flow is not blocked during development.
-      return;
-    }
+    // Keep completion UX non-blocking in demo mode where no backend request is made.
+    if (isApiError(err) && err.code === DEMO_MODE_ERROR.code) return;
     throw err;
-  }
-
-  if (!result.data.success) {
-    throw new Error(result.data.error?.message ?? 'Failed to submit rating');
   }
 }

@@ -390,6 +390,20 @@
     "cancel_this_trip_title": "Cancel this trip?",
     "cancel_search_confirm_body": "Your request will be deleted and no driver will be able to accept it.",
     "yes_cancel": "Yes, cancel",
-    "no_continue": "No, continue"
+    "no_continue": "No, continue",
+    "promo_code": "Promo code",
+    "promo_add": "Add",
+    "promo_placeholder": "e.g. GLIDEY20",
+    "promo_apply": "Apply",
+    "promo_remove": "Remove",
+    "promo_applied": "Code applied",
+    "promo_final_fare": "Fare after discount",
+    "promo_invalid": "Invalid or unknown code",
+    "promo_expired": "This code has expired",
+    "promo_exhausted": "This code is fully used up",
+    "promo_already_used": "You have already used this code",
+    "promo_min_fare": "Minimum fare not met for this code",
+    "promo_error": "Could not verify the code. Please try again.",
+    "promo_expired_at_booking": "This promo code is no longer valid. The booking was cancelled."
   }
 }

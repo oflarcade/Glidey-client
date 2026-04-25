@@ -19,7 +19,7 @@ export interface UseBookingResult {
   isFareLoading: boolean;
   fareError: string | null;
   isBusy: boolean;
-  bookRide: () => Promise<void>;
+  bookRide: (promoCode?: string) => Promise<void>;
   cancel: () => Promise<void>;
 }
 
@@ -78,7 +78,7 @@ export function useBooking({
     };
   }, [distanceM, durationS]);
 
-  const bookRide = useCallback(async () => {
+  const bookRide = useCallback(async (promoCode?: string) => {
     if (busyRef.current || !pickup || !destination) return;
     busyRef.current = true;
     setIsBusy(true);
@@ -89,6 +89,7 @@ export function useBooking({
         distanceM,
         durationS,
         ...(selectedVehicleTypeId ? { vehicleTypeId: selectedVehicleTypeId } : {}),
+        ...(promoCode ? { promoCode } : {}),
       });
       transition('searching', { rideId: res.id });
     } finally {
@@ -103,7 +104,7 @@ export function useBooking({
     setIsBusy(true);
     try {
       await cancelRide({ rideId });
-      transition('cancelled');
+      transition('idle');
     } finally {
       busyRef.current = false;
       setIsBusy(false);

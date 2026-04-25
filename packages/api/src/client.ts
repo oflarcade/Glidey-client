@@ -39,7 +39,7 @@ export async function apiFetch(
 
   const url = joinUrl(API_BASE_URL, path);
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     ...options.headers,
   };
 

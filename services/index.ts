@@ -60,3 +60,8 @@ export {
   submitRating,
   type SubmitRatingRequest,
 } from './ratingsService';
+
+export {
+  validatePromoCode,
+  type PromoValidateResult,
+} from './promoService';

@@ -390,6 +390,20 @@
     "cancel_this_trip_title": "Annuler cette course ?",
     "cancel_search_confirm_body": "Votre demande sera supprimée et aucun conducteur ne pourra l'accepter.",
     "yes_cancel": "Oui, annuler",
-    "no_continue": "Non, continuer"
+    "no_continue": "Non, continuer",
+    "promo_code": "Code promo",
+    "promo_add": "Ajouter",
+    "promo_placeholder": "Ex : GLIDEY20",
+    "promo_apply": "Appliquer",
+    "promo_remove": "Supprimer",
+    "promo_applied": "Code appliqué",
+    "promo_final_fare": "Tarif après remise",
+    "promo_invalid": "Code invalide ou inconnu",
+    "promo_expired": "Ce code a expiré",
+    "promo_exhausted": "Ce code est épuisé",
+    "promo_already_used": "Vous avez déjà utilisé ce code",
+    "promo_min_fare": "Tarif minimum non atteint pour ce code",
+    "promo_error": "Impossible de vérifier le code. Réessayez.",
+    "promo_expired_at_booking": "Ce code promo n'est plus valide. La réservation a été annulée."
   }
 }

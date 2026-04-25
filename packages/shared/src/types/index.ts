@@ -103,6 +103,8 @@ export interface Ride {
   ignoredBy?: string[]; // Array of driver IDs who ignored this ride
   createdAt: Date;
   updatedAt: Date;
+  discountXof?: number | null;
+  promoCodeId?: string | null;
 }
 
 export interface RideFare {
@@ -350,6 +352,7 @@ export interface CreateRideV2Request {
   distanceM: number;
   durationS: number;
   vehicleTypeId?: string; // optional — backend defaults to Moto-taxi if omitted
+  promoCode?: string;
 }
 
 export interface CreateRideV2Response {
@@ -366,8 +369,9 @@ export interface MatchedDriver {
   vehicleType: string; // free-text e.g. "scooter"
   rating: number;
   completedRides: number;
-  profilePhoto?: string; // URL; undefined → deterministic fallback avatar
+  profilePhoto?: string; // URL; undefined → initials fallback
   location: GeoPoint;
+  etaSeconds?: number; // seconds until driver arrives at pickup
 }
 
 // ─── Phase 2: Cancel ride ─────────────────────────────────────────────────────

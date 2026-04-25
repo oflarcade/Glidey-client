@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { RideState, MatchedDriver } from '../types';
+import type { RideState, MatchedDriver, Location } from '../types';
 
 // Valid next states for each current state. Transition to 'idle' is always allowed (reset).
 const VALID_TRANSITIONS: Partial<Record<RideState, RideState[]>> = {
@@ -9,10 +9,21 @@ const VALID_TRANSITIONS: Partial<Record<RideState, RideState[]>> = {
   pickup_en_route: ['completed', 'cancelled'],
 };
 
+// Journey data captured at booking time — persists until ride store reset so the receipt
+// screen can render populated data even when backend history hasn't synced (demo mode).
+export interface JourneyData {
+  pickup: Location | null;
+  destination: Location | null;
+  fareTotal: number | null;
+  distanceM: number | null;
+  discountXof?: number | null;
+}
+
 interface RideStoreState {
   rideState: RideState;
   rideId: string | null;
   matchedDriver: MatchedDriver | null;
+  journey: JourneyData | null;
 }
 
 interface TransitionPayload {
@@ -23,6 +34,7 @@ interface TransitionPayload {
 interface RideStoreActions {
   transition: (next: RideState, payload?: TransitionPayload) => void;
   reset: () => void;
+  setJourney: (data: JourneyData) => void;
 }
 
 type RideStore = RideStoreState & RideStoreActions;
@@ -31,6 +43,7 @@ const INITIAL: RideStoreState = {
   rideState: 'idle',
   rideId: null,
   matchedDriver: null,
+  journey: null,
 };
 
 export const useRideStore = create<RideStore>()((set, get) => ({
@@ -59,6 +72,10 @@ export const useRideStore = create<RideStore>()((set, get) => ({
 
   reset() {
     set({ ...INITIAL });
+  },
+
+  setJourney(data) {
+    set({ journey: data });
   },
 }));
 

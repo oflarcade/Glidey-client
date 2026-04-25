@@ -21,6 +21,9 @@ export interface TripReceiptProps {
 
 const SCALLOP_RADIUS = 8;
 const SCALLOP_HEIGHT = SCALLOP_RADIUS;
+const DRIVER_DETAILS_GAP = spacing.xs;
+const SECTION_GAP = spacing.xs;
+const FARE_ROW_VERTICAL_PADDING = spacing.xs / 2;
 
 /** Generates an SVG path for a scalloped edge strip.
  *  The strip fills with `hostBackgroundColor` and has arcs cut into one side,
@@ -72,7 +75,11 @@ function ScallopEdge({
 }) {
   if (width <= 0) return null;
   return (
-    <Svg width={width} height={SCALLOP_HEIGHT} style={side === 'top' ? { marginBottom: -1 } : { marginTop: -1 }}>
+    <Svg
+      width={width}
+      height={SCALLOP_HEIGHT}
+      style={side === 'top' ? styles.scallopTop : styles.scallopBottom}
+    >
       <Path d={scallopPath(width, side)} fill={fill} />
     </Svg>
   );
@@ -211,6 +218,13 @@ export function TripReceipt({
             <Text style={styles.fareValue}>{formatXOF(ride.fare?.timeFare)}</Text>
           </View>
 
+          {showDiscount ? (
+            <View style={styles.fareRow}>
+              <Text style={styles.fareLabel}>Remise</Text>
+              <Text style={[styles.fareValue, styles.discountValue]}>-{formatXOF(discountAmount)}</Text>
+            </View>
+          ) : null}
+
           <View style={styles.amountPaidDivider} />
 
           <View style={styles.fareRow}>
@@ -220,7 +234,13 @@ export function TripReceipt({
         </View>
 
         {/* PDF stub */}
-        <TouchableOpacity onPress={handlePdfPress} style={styles.pdfRow} activeOpacity={0.6}>
+        <TouchableOpacity
+          onPress={handlePdfPress}
+          style={styles.pdfRow}
+          activeOpacity={0.6}
+          accessibilityRole="button"
+          accessibilityLabel="Download PDF"
+        >
           <Text style={styles.pdfLink}>Télécharger le PDF / Download PDF</Text>
         </TouchableOpacity>
       </View>
@@ -239,6 +259,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
   },
+  scallopTop: {
+    marginBottom: -1,
+  },
+  scallopBottom: {
+    marginTop: -1,
+  },
 
   // Card body — no top/bottom borderRadius (handled by scallop edges)
   card: {
@@ -256,7 +282,7 @@ const styles = StyleSheet.create({
   },
   driverDetails: {
     flex: 1,
-    gap: 2,
+    gap: DRIVER_DETAILS_GAP,
   },
   driverName: {
     ...typography.body,
@@ -295,7 +321,7 @@ const styles = StyleSheet.create({
   // Address sections
   section: {
     paddingVertical: spacing.sm,
-    gap: 4,
+    gap: SECTION_GAP,
   },
   sectionLabel: {
     ...typography.bodySmall,
@@ -324,7 +350,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 2,
+    paddingVertical: FARE_ROW_VERTICAL_PADDING,
   },
   fareLabel: {
     ...typography.body,
@@ -351,11 +377,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+  discountValue: {
+    color: colors.success,
+  },
 
   // PDF link
   pdfRow: {
     alignItems: 'center',
     paddingVertical: spacing.md,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   pdfLink: {
     ...typography.bodySmall,

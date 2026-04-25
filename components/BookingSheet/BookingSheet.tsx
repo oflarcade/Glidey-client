@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
-import { View, Text, TouchableOpacity, ActivityIndicator, Pressable, Keyboard, Platform, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Pressable, Keyboard, Platform, StyleSheet, Dimensions, TextInput } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -22,6 +22,8 @@ import type { FareEstimateItem, Location, MatchedDriver } from '@rentascooter/sh
 import { SearchModeContent } from './SearchModeContent';
 import type { IconName } from '@rentascooter/ui';
 import type { ScooterTypeOption } from '@/components/ScooterCarousel/ScooterCarousel';
+import { validatePromoCode } from '@/services/promoService';
+import type { PromoValidateResult } from '@/services/promoService';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -69,6 +71,11 @@ interface BookingModeContentProps {
   isBusy: boolean;
   onBookRide: () => void;
   onTapDestination: () => void;
+  appliedPromo: (PromoValidateResult & { valid: true }) | null;
+  onApplyPromoCode: (result: PromoValidateResult & { valid: true }) => void;
+  onRemovePromoCode: () => void;
+  onPromoInputOpen: () => void;
+  fareEstimateXof: number | null;
 }
 
 function BookingModeContent({
@@ -83,8 +90,51 @@ function BookingModeContent({
   isBusy,
   onBookRide,
   onTapDestination,
+  appliedPromo,
+  onApplyPromoCode,
+  onRemovePromoCode,
+  onPromoInputOpen,
+  fareEstimateXof,
 }: BookingModeContentProps) {
   const { t } = useTranslation();
+  const [promoInputOpen, setPromoInputOpen] = useState(false);
+  const [promoInputValue, setPromoInputValue] = useState('');
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  const handlePromoOpen = useCallback(() => {
+    setPromoInputOpen(true);
+    setPromoError(null);
+    onPromoInputOpen();
+  }, [onPromoInputOpen]);
+
+  const handlePromoSubmit = useCallback(async () => {
+    if (!promoInputValue.trim() || fareEstimateXof == null) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    try {
+      const result = await validatePromoCode(promoInputValue, fareEstimateXof);
+      if (result.valid) {
+        onApplyPromoCode(result);
+        setPromoInputOpen(false);
+        setPromoInputValue('');
+      } else {
+        const reasonMessages: Record<string, string> = {
+          INVALID_CODE: t('booking.promo_invalid'),
+          EXPIRED: t('booking.promo_expired'),
+          EXHAUSTED: t('booking.promo_exhausted'),
+          ALREADY_USED: t('booking.promo_already_used'),
+          MIN_FARE_NOT_MET: t('booking.promo_min_fare'),
+        };
+        setPromoError(reasonMessages[result.reason] ?? t('booking.promo_invalid'));
+      }
+    } catch {
+      setPromoError(t('booking.promo_error'));
+    } finally {
+      setPromoLoading(false);
+    }
+  }, [promoInputValue, fareEstimateXof, onApplyPromoCode, t]);
+
   return (
     <View style={styles.body}>
       <Pressable style={styles.row} onPress={onTapDestination}>
@@ -130,6 +180,59 @@ function BookingModeContent({
         <Text style={styles.rowValue}>{t('client.cash')}</Text>
       </View>
 
+      {/* Promo code row */}
+      {appliedPromo ? (
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>{t('booking.promo_code')}</Text>
+          <View style={styles.promoAppliedRight}>
+            <Text style={styles.promoAppliedCode}>{appliedPromo.code}</Text>
+            <TouchableOpacity onPress={onRemovePromoCode} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={styles.promoRemoveText}>{t('booking.promo_remove')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : promoInputOpen ? (
+        <View style={styles.promoInputRow}>
+          <TextInput
+            style={styles.promoTextInput}
+            value={promoInputValue}
+            onChangeText={(v) => { setPromoInputValue(v); setPromoError(null); }}
+            placeholder={t('booking.promo_placeholder')}
+            placeholderTextColor={colors.text.tertiary}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={() => { void handlePromoSubmit(); }}
+            editable={!promoLoading}
+          />
+          <TouchableOpacity
+            style={[styles.promoApplyBtn, (!promoInputValue.trim() || promoLoading) && styles.promoApplyBtnDisabled]}
+            onPress={() => { void handlePromoSubmit(); }}
+            disabled={!promoInputValue.trim() || promoLoading}
+          >
+            {promoLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.promoApplyBtnText}>{t('booking.promo_apply')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>{t('booking.promo_code')}</Text>
+          <TouchableOpacity onPress={handlePromoOpen}>
+            <Text style={styles.promoAddText}>{t('booking.promo_add')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {promoError ? <Text style={styles.promoErrorText}>{promoError}</Text> : null}
+      {appliedPromo ? (
+        <View style={styles.promoDiscountRow}>
+          <Text style={styles.promoFinalFareLabel}>{t('booking.promo_final_fare')}</Text>
+          <Text style={styles.promoFinalFareValue}>{formatXOF(appliedPromo.finalFareXof)}</Text>
+        </View>
+      ) : null}
+
       <TouchableOpacity
         style={[styles.bookBtn, !canBook && !isBusy && styles.bookBtnDisabled]}
         onPress={onBookRide}
@@ -169,6 +272,9 @@ export interface BookingSheetProps {
   matchedDriver: MatchedDriver | null;
   userName: string;
   onConfirmDestination: (loc: Location) => void;
+  appliedPromo: (PromoValidateResult & { valid: true }) | null;
+  onApplyPromoCode: (result: PromoValidateResult & { valid: true }) => void;
+  onRemovePromoCode: () => void;
 }
 
 // ─── BookingSheet ─────────────────────────────────────────────────────────────
@@ -193,6 +299,9 @@ export const BookingSheet = memo(function BookingSheet({
   matchedDriver,
   userName,
   onConfirmDestination,
+  appliedPromo,
+  onApplyPromoCode,
+  onRemovePromoCode,
 }: BookingSheetProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -813,6 +922,11 @@ export const BookingSheet = memo(function BookingSheet({
                     isBusy={isBusy}
                     onBookRide={onBookRide}
                     onTapDestination={() => setSheetMode('search')}
+                    appliedPromo={appliedPromo}
+                    onApplyPromoCode={onApplyPromoCode}
+                    onRemovePromoCode={onRemovePromoCode}
+                    onPromoInputOpen={snapToFull}
+                    fareEstimateXof={selectedEstimate?.fareEstimate ?? null}
                   />
                 )}
               </Animated.View>
@@ -1352,5 +1466,86 @@ const styles = StyleSheet.create({
   confirmBtnSecondaryText: {
     ...typography.body,
     color: colors.text.secondary,
+  },
+
+  // ── Promo code ──
+  promoAppliedRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  promoAppliedCode: {
+    ...typography.body,
+    color: colors.text.primary,
+    fontWeight: '600',
+  },
+  promoRemoveText: {
+    ...typography.bodySmall,
+    color: colors.error,
+    fontWeight: '600',
+  },
+  promoInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  promoTextInput: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.background.tertiary,
+    backgroundColor: colors.background.secondary,
+    paddingHorizontal: spacing.sm,
+    ...typography.body,
+    color: colors.text.primary,
+  },
+  promoApplyBtn: {
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  promoApplyBtnDisabled: {
+    opacity: 0.5,
+  },
+  promoApplyBtnText: {
+    ...typography.bodySmall,
+    color: '#000',
+    fontWeight: '700',
+  },
+  promoAddText: {
+    ...typography.body,
+    color: colors.primary.main,
+    fontWeight: '600',
+  },
+  promoErrorText: {
+    ...typography.caption,
+    color: colors.error,
+    paddingHorizontal: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
+  promoDiscountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    backgroundColor: colors.background.secondary,
+    borderRadius: 8,
+    marginBottom: spacing.xs,
+  },
+  promoFinalFareLabel: {
+    ...typography.bodySmall,
+    color: colors.text.secondary,
+  },
+  promoFinalFareValue: {
+    ...typography.body,
+    color: colors.primary.main,
+    fontWeight: '700',
   },
 });
