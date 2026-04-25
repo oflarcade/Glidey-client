@@ -78,12 +78,14 @@ describe('SettingsScreen', () => {
   });
 
   it('opens language sheet when language row is pressed', () => {
-    const { getByText, getAllByText } = render(<SettingsScreen />);
+    const { getByText, getByTestId, getAllByText, queryByTestId } = render(<SettingsScreen />);
+
+    expect(queryByTestId('settings-language-dropdown')).toBeNull();
 
     fireEvent.press(getByText('settings.language'));
 
+    expect(getByTestId('settings-language-dropdown')).toBeTruthy();
     expect(mockSetLocale).not.toHaveBeenCalled();
-    expect(getAllByText('settings.language').length).toBeGreaterThan(1);
     expect(getAllByText('common.french').length).toBeGreaterThan(0);
     expect(getAllByText('common.english').length).toBeGreaterThan(0);
   });
