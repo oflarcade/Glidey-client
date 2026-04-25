@@ -7,8 +7,6 @@ import {
   Switch,
   Alert,
   Linking,
-  Modal,
-  Pressable,
 } from 'react-native';
 import { colors, spacing, typography } from '@rentascooter/ui/theme';
 import { TopBar, Icon } from '@rentascooter/ui';
@@ -18,7 +16,6 @@ import { useTranslation } from '@rentascooter/i18n';
 import { useAuth } from '@rentascooter/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import { LanguagePicker } from '../../components/LanguagePicker';
 
 const STORAGE_KEYS = {
   push: 'glidey:setting:push_notifications',
@@ -94,13 +91,12 @@ function SettingsItem({
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { t, locale } = useTranslation();
+  const { t, locale, setLocale } = useTranslation();
   const { logout } = useAuth();
 
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [locationSharing, setLocationSharing] = useState(true);
-  const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
 
   useEffect(() => {
     async function loadSettings() {
@@ -136,8 +132,9 @@ export default function SettingsScreen() {
   }, []);
 
   const handleLanguagePress = useCallback(() => {
-    setLanguagePickerVisible(true);
-  }, []);
+    const nextLocale = locale === 'fr' ? 'en' : 'fr';
+    void setLocale(nextLocale);
+  }, [locale, setLocale]);
 
   const handlePrivacyPress = useCallback(() => {
     Linking.openURL('https://glidey.sn/privacy');
@@ -280,22 +277,6 @@ export default function SettingsScreen() {
           </Text>
         </View>
       </ScrollView>
-
-      <Modal
-        visible={languagePickerVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setLanguagePickerVisible(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setLanguagePickerVisible(false)}
-        >
-          <Pressable style={styles.modalContent} onPress={() => {}}>
-            <LanguagePicker />
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
@@ -370,18 +351,5 @@ const styles = StyleSheet.create({
   versionText: {
     ...typography.caption,
     color: colors.text.tertiary,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.background.primary,
-    borderRadius: 16,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    width: '80%',
   },
 });
