@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import MapboxGL from '@rnmapbox/maps';
@@ -191,6 +191,8 @@ export default function ClientMainScreen() {
 
   // Sheet is visible whenever sheetMode is not idle (driven by sheetMode atom, not destination)
   const showBookingSheet = sheetMode !== 'idle';
+  const [sheetVisibleHeight, setSheetVisibleHeight] = useState(0);
+  const fabBottomAnimated = useRef(new Animated.Value(0)).current;
 
   const pickup: GeoPoint | null = location
     ? { latitude: location.latitude, longitude: location.longitude }
@@ -461,7 +463,18 @@ export default function ClientMainScreen() {
     rideState,
     safeAreaBottom: insets.bottom,
     baseBottomSpacing: spacing.xl,
-  }), [sheetMode, rideState, insets.bottom]);
+    sheetBottomSpacing: spacing.sm,
+    sheetVisibleHeight,
+  }), [sheetMode, rideState, insets.bottom, sheetVisibleHeight]);
+
+  useEffect(() => {
+    Animated.timing(fabBottomAnimated, {
+      toValue: userPositionButtonLayout.bottomOffset,
+      duration: 240,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [fabBottomAnimated, userPositionButtonLayout.bottomOffset]);
 
   return (
     <View style={styles.container}>
@@ -544,12 +557,14 @@ export default function ClientMainScreen() {
 
       {/* Center on location FAB */}
       {userPositionButtonLayout.isVisible && (
-        <UserPositionButton
-          onPress={handleLocatePress}
-          isGpsEnabled={isServiceEnabled === true && permissionStatus === 'granted'}
-          style={[styles.fab, { bottom: userPositionButtonLayout.bottomOffset }]}
-          testID="locate-fab"
-        />
+        <Animated.View style={[styles.fabContainer, { bottom: fabBottomAnimated }]}>
+          <UserPositionButton
+            onPress={handleLocatePress}
+            isGpsEnabled={isServiceEnabled === true && permissionStatus === 'granted'}
+            style={styles.fab}
+            testID="locate-fab"
+          />
+        </Animated.View>
       )}
 
       {/* In-map booking sheet — auto-presents on destination confirmation (R1) */}
@@ -578,6 +593,7 @@ export default function ClientMainScreen() {
         appliedPromo={appliedPromo}
         onApplyPromoCode={handleApplyPromoCode}
         onRemovePromoCode={handleRemovePromoCode}
+        onVisibleHeightChange={setSheetVisibleHeight}
       />
 
       {/* Location Services Prompt Modal (centered dialog) */}
@@ -604,8 +620,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.secondary,
   },
   fab: {
-    position: 'absolute',
-    right: spacing.lg,
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -617,5 +631,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  fabContainer: {
+    position: 'absolute',
+    right: spacing.lg,
   },
 });
