@@ -52,6 +52,22 @@ jest.mock('@rentascooter/ui', () => {
       </View>
     ),
     Icon: () => <Text>icon</Text>,
+    ListSheet: ({
+      visible,
+      children,
+      title,
+    }: {
+      visible: boolean;
+      children: React.ReactNode;
+      title?: string;
+    }) => (
+      visible ? (
+        <View>
+          {title ? <Text>{title}</Text> : null}
+          {children}
+        </View>
+      ) : null
+    ),
   };
 });
 
@@ -61,20 +77,33 @@ describe('SettingsScreen', () => {
     mockLocale = 'fr';
   });
 
-  it('toggles language from french to english when language row is pressed', () => {
-    const { getByText } = render(<SettingsScreen />);
+  it('opens language sheet when language row is pressed', () => {
+    const { getByText, getAllByText } = render(<SettingsScreen />);
 
     fireEvent.press(getByText('settings.language'));
 
-    expect(mockSetLocale).toHaveBeenCalledWith('en');
+    expect(mockSetLocale).not.toHaveBeenCalled();
+    expect(getAllByText('settings.language').length).toBeGreaterThan(1);
+    expect(getAllByText('common.french').length).toBeGreaterThan(0);
+    expect(getAllByText('common.english').length).toBeGreaterThan(0);
   });
 
-  it('toggles language from english to french when language row is pressed', () => {
-    mockLocale = 'en';
+  it('sets french when french option is selected', () => {
+    const { getByText, getAllByText } = render(<SettingsScreen />);
+
+    fireEvent.press(getByText('settings.language'));
+    fireEvent.press(getAllByText('common.french')[1]);
+
+    expect(mockSetLocale).toHaveBeenCalledWith('fr');
+  });
+
+  it('sets english when english option is selected', () => {
+    mockLocale = 'fr';
     const { getByText } = render(<SettingsScreen />);
 
     fireEvent.press(getByText('settings.language'));
+    fireEvent.press(getByText('common.english'));
 
-    expect(mockSetLocale).toHaveBeenCalledWith('fr');
+    expect(mockSetLocale).toHaveBeenCalledWith('en');
   });
 });
