@@ -32,6 +32,7 @@ export default function NotificationsScreen() {
   const [hasError, setHasError] = useState<boolean>(false);
 
   const loadNotifications = useCallback(async (): Promise<void> => {
+    setIsLoading(true);
     setHasError(false);
     try {
       const items = await listNotifications({ limit: NOTIFICATION_FETCH_LIMIT });
