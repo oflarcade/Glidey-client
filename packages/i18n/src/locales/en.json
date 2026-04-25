@@ -123,7 +123,7 @@
     "enter_complete_code": "Please enter the complete verification code",
     "code_resent": "Verification code sent!",
     "resend_code_in": "Resend code in",
-    "resend_in": "Resend in {{seconds}}s",
+    "resend_in": "Resend in %{seconds}s",
     "sign_up_to_get_started": "Sign up to get started",
     "registration_failed": "Registration Failed",
     "enter_mobile_number": "Enter your mobile phone number",
