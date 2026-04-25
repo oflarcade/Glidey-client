@@ -68,10 +68,12 @@ describe('subscribeToTracking', () => {
 
     ws.onmessage?.({
       data: JSON.stringify({
-        rideId: 'ride-1',
-        driverLocation: { latitude: 14.6937, longitude: -17.4441 },
-        etaSeconds: 120,
-        timestamp: 1_717_341_000_000,
+        payload: {
+          rideId: 'ride-1',
+          driverLocation: { latitude: 14.6937, longitude: -17.4441 },
+          etaSeconds: 120,
+          timestamp: 1_717_341_000_000,
+        },
       }),
     });
 
@@ -99,6 +101,32 @@ describe('subscribeToTracking', () => {
 
     expect(mockAuthedFetch).toHaveBeenCalledWith('GET', '/rides/ride-1/position');
     expect(onUpdate).not.toHaveBeenCalled();
+
+    cleanup();
+  });
+
+  it('accepts tracking updates nested under data envelope', () => {
+    const onUpdate = jest.fn();
+    const cleanup = subscribeToTracking('ride-1', onUpdate);
+    const ws = sockets[0];
+
+    ws.onmessage?.({
+      data: JSON.stringify({
+        data: {
+          rideId: 'ride-1',
+          driverLocation: { latitude: 14.697, longitude: -17.441 },
+          etaSeconds: 75,
+          timestamp: 1_717_341_050_000,
+        },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      rideId: 'ride-1',
+      driverLocation: { latitude: 14.697, longitude: -17.441 },
+      etaSeconds: 75,
+      timestamp: 1_717_341_050_000,
+    });
 
     cleanup();
   });
