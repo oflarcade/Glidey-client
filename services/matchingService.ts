@@ -21,6 +21,7 @@ interface RideStatusResponse {
   id: string;
   status: string;
   driverId?: string | null;
+  driver?: MatchedDriver;
 }
 
 function mapStatus(status: string): RideState | null {
@@ -34,17 +35,96 @@ function mapStatus(status: string): RideState | null {
   return MAP[status] ?? null;
 }
 
-function placeholderDriver(driverId: string): MatchedDriver {
+interface RideDriverProfileResponse {
+  rideId: string;
+  driverId: string;
+  name: string;
+  photoUrl: string | null;
+  vehicleType: string;
+  vehiclePlate: string;
+  rating: number | null;
+  totalTrips: number;
+}
+
+interface TrackingPositionResponse {
+  rideId: string;
+  driverLocation: { latitude: number; longitude: number };
+  etaSeconds: number;
+  timestamp: number;
+}
+
+interface RawRealtimePayload {
+  event?: unknown;
+  rideId?: unknown;
+  driverId?: unknown;
+  driver?: unknown;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isValidNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isMatchedDriver(value: unknown): value is MatchedDriver {
+  if (!isRecord(value)) return false;
+  if (typeof value['id'] !== 'string' || value['id'].length === 0) return false;
+  if (typeof value['name'] !== 'string' || value['name'].length === 0) return false;
+  if (typeof value['vehiclePlate'] !== 'string' || value['vehiclePlate'].length === 0) return false;
+  if (typeof value['vehicleType'] !== 'string' || value['vehicleType'].length === 0) return false;
+  if (!isValidNumber(value['rating'])) return false;
+  if (!isValidNumber(value['completedRides'])) return false;
+  if (value['profilePhoto'] !== undefined && value['profilePhoto'] !== null && typeof value['profilePhoto'] !== 'string') {
+    return false;
+  }
+  if (!isRecord(value['location'])) return false;
+  return isValidNumber(value['location']['latitude']) && isValidNumber(value['location']['longitude']);
+}
+
+function mapDriverFromProfile(
+  profile: RideDriverProfileResponse,
+  tracking: TrackingPositionResponse | null,
+): MatchedDriver {
   return {
-    id: driverId,
-    name: 'Conducteur assigné',
-    vehiclePlate: '—',
-    vehicleType: 'Moto',
-    rating: 5,
-    completedRides: 0,
-    profilePhoto: undefined,
-    location: { latitude: 0, longitude: 0 },
+    id: profile.driverId,
+    name: profile.name,
+    vehiclePlate: profile.vehiclePlate,
+    vehicleType: profile.vehicleType,
+    rating: profile.rating ?? 0,
+    completedRides: profile.totalTrips,
+    profilePhoto: profile.photoUrl ?? undefined,
+    location: tracking?.driverLocation ?? { latitude: 0, longitude: 0 },
+    etaSeconds: tracking?.etaSeconds,
   };
+}
+
+async function resolveMatchedDriver(
+  rideId: string,
+  eventDriver: unknown,
+): Promise<MatchedDriver | undefined> {
+  if (isMatchedDriver(eventDriver)) {
+    return eventDriver;
+  }
+
+  const profile = (await authedFetch('GET', `/rides/${rideId}/driver-profile`)) as RideDriverProfileResponse;
+  let tracking: TrackingPositionResponse | null = null;
+  try {
+    tracking = (await authedFetch('GET', `/rides/${rideId}/position`)) as TrackingPositionResponse;
+  } catch {
+    tracking = null;
+  }
+  return mapDriverFromProfile(profile, tracking);
+}
+
+function parseRealtimePayload(data: string): RawRealtimePayload | null {
+  try {
+    const parsed = JSON.parse(data);
+    return isRecord(parsed) ? parsed as RawRealtimePayload : null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Demo fixture (T-097) ─────────────────────────────────────────────────────
@@ -106,10 +186,13 @@ export function subscribeToMatching(
         const data = (await authedFetch('GET', `/rides/${rideId}`)) as RideStatusResponse;
         const state = mapStatus(data.status);
         if (!state) return;
-        const event: MatchingEvent =
-          state === 'matched'
-            ? { state, driver: placeholderDriver(data.driverId ?? '') }
-            : { state };
+        const event: MatchingEvent = { state };
+        if (state === 'matched') {
+          event.driver = data.driver && isMatchedDriver(data.driver)
+            ? data.driver
+            : await resolveMatchedDriver(rideId, undefined);
+          if (!event.driver) return;
+        }
         handleEvent(event);
       } catch {
         // non-terminal; next interval fires normally
@@ -141,29 +224,26 @@ export function subscribeToMatching(
     ws.onopen = () => stopPolling();
 
     ws.onmessage = (ev) => {
-      try {
-        const raw = JSON.parse(String(ev.data)) as Record<string, unknown>;
-        const event = raw['event'] as string | undefined;
-        if (!event) return;
+      const raw = parseRealtimePayload(String(ev.data));
+      if (!raw || typeof raw.event !== 'string') return;
 
-        // Filter to this ride's events only
-        const evRideId = raw['rideId'] as string | undefined;
-        if (evRideId && evRideId !== rideId) return;
+      if (typeof raw.rideId === 'string' && raw.rideId !== rideId) return;
 
-        if (event === 'ride:accepted') {
-          handleEvent({
-            state: 'matched',
-            driver: placeholderDriver((raw['driverId'] as string | undefined) ?? ''),
+      if (raw.event === 'ride:accepted') {
+        void resolveMatchedDriver(rideId, raw.driver)
+          .then((driver) => {
+            if (!driver) return;
+            handleEvent({ state: 'matched', driver });
+          })
+          .catch(() => {
+            // non-terminal; polling fallback can still recover matched state
           });
-        } else if (event === 'ride:cancelled') {
-          handleEvent({ state: 'cancelled' });
-        } else if (event === 'ride:started') {
-          handleEvent({ state: 'pickup_en_route' });
-        } else if (event === 'ride:completed') {
-          handleEvent({ state: 'completed' });
-        }
-      } catch {
-        // ignore malformed frames
+      } else if (raw.event === 'ride:cancelled') {
+        handleEvent({ state: 'cancelled' });
+      } else if (raw.event === 'ride:started') {
+        handleEvent({ state: 'pickup_en_route' });
+      } else if (raw.event === 'ride:completed') {
+        handleEvent({ state: 'completed' });
       }
     };
 
@@ -195,7 +275,12 @@ export async function getMatchingStatus(rideId: string): Promise<MatchingEvent> 
     const data = (await authedFetch('GET', `/rides/${rideId}`)) as RideStatusResponse;
     const state = mapStatus(data.status) ?? 'searching';
     if (state === 'matched') {
-      return { state, driver: placeholderDriver(data.driverId ?? '') };
+      return {
+        state,
+        driver: data.driver && isMatchedDriver(data.driver)
+          ? data.driver
+          : await resolveMatchedDriver(rideId, undefined),
+      };
     }
     return { state };
   } catch (e) {
