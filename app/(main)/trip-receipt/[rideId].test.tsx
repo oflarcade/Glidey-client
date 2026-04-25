@@ -1,6 +1,5 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { Text } from 'react-native';
 
 import TripReceiptScreen from './[rideId]';
 
@@ -15,6 +14,14 @@ jest.mock('expo-router', () => ({
 jest.mock('@rentascooter/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
+
+jest.mock('@rentascooter/ui', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return {
+    Icon: () => <Text>icon</Text>,
+  };
+});
 
 jest.mock('@/hooks/useRideHistory', () => ({
   useRideHistory: () => ({
@@ -37,14 +44,22 @@ jest.mock('@rentascooter/shared', () => ({
     selector({ reset: jest.fn(), matchedDriver: null, journey: null }),
 }));
 
-jest.mock('@/components/TripReceipt', () => ({
-  TripReceipt: () => <Text>trip-receipt-content</Text>,
-}));
+jest.mock('@/components/TripReceipt', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return {
+    TripReceipt: () => <Text>trip-receipt-content</Text>,
+  };
+});
 
-jest.mock('@/components/RatingModal', () => ({
-  RatingModal: ({ visible }: { visible: boolean }) =>
-    visible ? <Text>rating-modal-visible</Text> : <Text>rating-modal-hidden</Text>,
-}));
+jest.mock('@/components/RatingModal', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return {
+    RatingModal: ({ visible }: { visible: boolean }) =>
+      visible ? <Text>rating-modal-visible</Text> : <Text>rating-modal-hidden</Text>,
+  };
+});
 
 describe('TripReceiptScreen', () => {
   it('renders trip receipt content for history entry point', () => {
