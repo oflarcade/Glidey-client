@@ -231,7 +231,7 @@ export default function VerifySmsScreen() {
                     style={resendTimer === 0 && styles.resendActive}
                   >
                     {resendTimer > 0
-                      ? `${t('auth.resend_code_in') || 'Resend code in'} ${resendTimer}s`
+                      ? t('auth.resend_in', { seconds: resendTimer }) || `Resend in ${resendTimer}s`
                       : t('auth.didnt_receive_code') || "Didn't receive code? Resend"}
                   </Text>
                 </Pressable>
