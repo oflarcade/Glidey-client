@@ -37,6 +37,8 @@ export const ANIMATION_CONFIG = {
   MIN_ZOOM: 12,
   /** Maximum zoom level for destination view */
   MAX_ZOOM: 16,
+  /** Navigation guidance camera pitch for accepted rides */
+  GUIDANCE_PITCH: 50,
 } as const;
 
 /**
@@ -208,4 +210,41 @@ export async function resetCameraToUser(
   duration: number = 800
 ): Promise<void> {
   await animateToLocation(cameraRef, userLocation, ANIMATION_CONFIG.MAX_ZOOM, duration);
+}
+
+/**
+ * Transition camera into a navigation-like guidance perspective.
+ *
+ * This keeps both pickup and destination visible, then applies a pitched camera
+ * centered near pickup so the map resembles turn-by-turn guidance mode.
+ */
+export async function animateToGuidanceView(
+  cameraRef: React.RefObject<MapboxGL.Camera | null>,
+  pickup: GeoPoint,
+  destination: GeoPoint,
+  options?: {
+    duration?: number;
+    padding?: typeof ANIMATION_CONFIG.PADDING;
+    pitch?: number;
+  }
+): Promise<void> {
+  if (!cameraRef.current) {
+    console.warn('[mapAnimations] Camera ref is null, skipping guidance animation');
+    return;
+  }
+
+  const duration = options?.duration ?? ANIMATION_CONFIG.DURATION;
+  const pitch = options?.pitch ?? ANIMATION_CONFIG.GUIDANCE_PITCH;
+
+  await animateToDestination(cameraRef, destination, pickup, {
+    duration,
+    padding: options?.padding,
+  });
+
+  await cameraRef.current.setCamera({
+    centerCoordinate: [pickup.longitude, pickup.latitude],
+    zoomLevel: 15,
+    pitch,
+    animationDuration: Math.max(300, Math.floor(duration * 0.7)),
+  });
 }
