@@ -3349,14 +3349,14 @@ __metadata:
 
 "@rentascooter/i18n@file:./packages/i18n::locator=rentascooter-client%40workspace%3A.":
   version: 1.0.0
-  resolution: "@rentascooter/i18n@file:./packages/i18n#./packages/i18n::hash=7820f5&locator=rentascooter-client%40workspace%3A."
+  resolution: "@rentascooter/i18n@file:./packages/i18n#./packages/i18n::hash=bc95e4&locator=rentascooter-client%40workspace%3A."
   dependencies:
     i18n-js: "npm:^4.4.3"
   peerDependencies:
     "@react-native-async-storage/async-storage": ">=1.21.0"
     expo-localization: ">=15.0.0"
     react: ">=18.0.0 || >=19.0.0"
-  checksum: 10c0/a6c0b76748f6158a570eb020722c127dc8646de9d47d6bf4fb07015345defd1816701b37010ce99b980876524fd758aa08582721fbd871c451ec2a85b26eca1b
+  checksum: 10c0/f2f1f70403aa34a0c4416061d8d5337e0205b7472987c4626d1190c43acc9fc773eee1a83e74454a8a9ec554ef231cf5444a60840e150d4479c590f76b8ae0cf
   languageName: node
   linkType: hard
 

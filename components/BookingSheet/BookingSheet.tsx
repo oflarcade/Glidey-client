@@ -34,6 +34,11 @@ const SPRING = { damping: 14, stiffness: 280, mass: 0.8 };
 const MODE_TRANSITION_DURATION = 260;
 
 type SnapLevel = 'mini' | 'peek' | 'full';
+const SNAP_HEIGHT: Record<SnapLevel, number> = {
+  mini: MINI_HEIGHT,
+  peek: PEEK_HEIGHT,
+  full: FULL_HEIGHT,
+} as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -275,6 +280,7 @@ export interface BookingSheetProps {
   appliedPromo: (PromoValidateResult & { valid: true }) | null;
   onApplyPromoCode: (result: PromoValidateResult & { valid: true }) => void;
   onRemovePromoCode: () => void;
+  onVisibleHeightChange?: (height: number) => void;
 }
 
 // ─── BookingSheet ─────────────────────────────────────────────────────────────
@@ -303,6 +309,7 @@ export const BookingSheet = memo(function BookingSheet({
   appliedPromo,
   onApplyPromoCode,
   onRemovePromoCode,
+  onVisibleHeightChange,
 }: BookingSheetProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -413,6 +420,11 @@ export const BookingSheet = memo(function BookingSheet({
       translateY.value = withSpring(FULL_HEIGHT, SPRING);
     }
   }, [visible, translateY, snapLevel]);
+
+  useEffect(() => {
+    const height = visible ? SNAP_HEIGHT[snap] : 0;
+    onVisibleHeightChange?.(height);
+  }, [onVisibleHeightChange, snap, visible]);
 
   // Auto-snap to peek on mode change; sync booking flag into worklet space
   useEffect(() => {
